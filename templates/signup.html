@@ -18,6 +18,15 @@ a.login{
 div.password{
     margin-top:12px;
 }
+div.username{
+    margin-top:12px;
+}
+div.email{
+    margin-top:12px;
+}
+div.confirmpassword{
+    margin-top:12px;
+}
 div.login-p{
     padding-top: 7px;
     background-color: #A39F9F;
@@ -60,7 +69,7 @@ div.signup-p{
 }
 .container {
     display: flex;
-    justify-content: center;
+    justify-content: space-evenly;
     align-items: center;
     flex-direction: column;
     height: 100vh;
@@ -93,7 +102,7 @@ h2{
 
 img{
     height: 46px;
-    margin: -34px;
+    margin-top: -159px;
     padding: 0;
     position: relative;
     margin-bottom: 0px;
@@ -104,7 +113,7 @@ img{
     margin: 0;
     padding: 0;
     position: relative;
-    bottom: -61px;
+    bottom: 4px;
     color: rgb(176, 178, 180);
 }
 
@@ -116,7 +125,7 @@ img{
     font-family: 'Istok Web', sans-serif;
     font-size: large;
     position: relative;
-    top: -40px;
+    top: 0px;
 }
 .form-group .btn-row {
     padding: 24px;
@@ -142,16 +151,20 @@ img{
         </div>
         <form id="loginForm" action="/signup_get" method="post">
             <div class="username">
+                <h4>Name:</h4>
+                <input type="text" id="username" name="username" style="height: 48px;" required>
+            </div>
+            <div class="email">
                 <h4>Email ID:</h4>
-                <input type="email" id="email" name="email" style="height: 48px;">
+                <input type="email" id="email" name="email" style="height: 48px;" required>
             </div>
             <div class="password">
                 <h4>Password:</h4>
-                <input type="password" id="password" name="password" style="height: 48px;">
+                <input type="password" id="password" name="password" style="height: 48px;" required>
             </div>
             <div class="confirmpassword">
                 <h4>Confirm Password:</h4>
-                <input type="password" id="confirmpassword" name="confirmpassword" style="height: 48px;">
+                <input type="password" id="confirmpassword" name="confirmpassword" style="height: 48px;" required>
             </div>
             <div class="form-group">
                 <div class="btn-row">
