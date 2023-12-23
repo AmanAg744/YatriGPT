@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signup</title>
+</head>
+<style>
+    body {
+    background-color: #151515;
+    margin: 0; /* Reset default margin */
+}
+a.login{
+    text-decoration: none;
+    color: #FFF;
+    cursor: pointer;
+}
+div.password{
+    margin-top:12px;
+}
+div.login-p{
+    padding-top: 7px;
+    background-color: #A39F9F;
+    color: #292828;
+    width: 4.5rem;
+    height: 2.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 14px;
+    font-family: 'Blinker', sans-serif;
+    font-size: 1rem;
+    font-style: normal;
+    font-weight: 300;
+    list-style: none;
+    text-align: center;
+}
+a.signup{
+    text-decoration: none;
+    color: #FFF;
+    cursor: pointer;
+}
+
+div.signup-p{
+    padding-top: 7px;
+    background-color: #A39F9F;
+    color: #292828;
+    width: 4.5rem;
+    height: 2.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 14px;
+    font-family: 'Blinker', sans-serif;
+    font-size: 1rem;
+    font-style: normal;
+    font-weight: 300;
+    list-style: none;
+    text-align: center;
+}
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.container > * {
+    margin-bottom: 46px;
+}
+
+input {
+    width: 285.6px; 
+    height: 90px; 
+    border-radius: 12px;
+    background-color: grey;
+}
+
+h4{
+    color: white;
+    font-size: medium;
+}
+
+h2{
+    color: #413f3f;
+    align-items: center;
+}
+
+.button{
+    border-radius: 30px;
+}
+
+img{
+    height: 46px;
+    margin: -34px;
+    padding: 0;
+    position: relative;
+    margin-bottom: 0px;
+    padding-bottom: 0px;
+    bottom: -100px;
+}
+.text{
+    margin: 0;
+    padding: 0;
+    position: relative;
+    bottom: -61px;
+    color: rgb(176, 178, 180);
+}
+
+.btn{
+    margin: 16px;
+}
+
+.texts{
+    font-family: 'Istok Web', sans-serif;
+    font-size: large;
+    position: relative;
+    top: -40px;
+}
+.form-group .btn-row {
+    padding: 24px;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+}
+.form-group .btn-row button {
+    width: 5rem;
+    height: 2.5rem;
+    padding: 10px;
+    border: none;
+    border-radius: 0.8125rem;
+    cursor: pointer;
+}
+</style>
+<body>
+    <div class="container">
+        <div class="texts">
+            <h2>
+                YatriGPT
+            </h2>
+        </div>
+        <form id="loginForm" action="/signup_get" method="post">
+            <div class="username">
+                <h4>Email ID:</h4>
+                <input type="email" id="email" name="email" style="height: 48px;">
+            </div>
+            <div class="password">
+                <h4>Password:</h4>
+                <input type="password" id="password" name="password" style="height: 48px;">
+            </div>
+            <div class="confirmpassword">
+                <h4>Confirm Password:</h4>
+                <input type="password" id="confirmpassword" name="confirmpassword" style="height: 48px;">
+            </div>
+            <div class="form-group">
+                <div class="btn-row">
+                    <div class="signup-p">
+                        <label for="signup">
+                            <div class="signup">
+                                <a class="signup"  onclick="myFunction()">Signup</a>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <div class="image">
+            <img src="static\copytaj.jpg" alt="">
+        </div>
+        <div class="text">
+            <p>Aapki Yatra Mangalmaye Ho</p>
+        </div>
+    </div>
+<script>
+    function myFunction() {
+        document.getElementById("loginForm").submit();
+    }
+</script>
+</body>
+</html>
