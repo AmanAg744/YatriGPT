@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Button List</title>
+    <title>Checkbox List</title>
 </head>
 <body>
     <form action="/button_clicked" method="post">
         <input type="hidden" name="cred_list" value="{{ cred_list }}">
-        <button type="submit" name="button_value" value="Mountains">Mountains</button>
-        <button type="submit" name="button_value" value="Beaches">Beaches</button>
-        <button type="submit" name="button_value" value="Temples">Temples</button>
+        <label><input type="checkbox" name="travel_type[]" value="Mountains"> Mountains</label><br>
+        <label><input type="checkbox" name="travel_type[]" value="Beaches"> Beaches</label><br>
+        <label><input type="checkbox" name="travel_type[]" value="Temples"> Temples</label><br>
+        <button type="submit">Continue</button>
     </form>
 </body>
 </html>
