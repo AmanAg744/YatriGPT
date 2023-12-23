@@ -89,26 +89,31 @@ def travel_type():
 
 @app.route('/button_clicked', methods=['POST'])
 def button_clicked():
-    button_value = request.form['button_value']
+    selected_types = request.form.getlist('travel_type[]')
     cred_list = request.form['cred_list']
-    print(type(cred_list))
-    print(cred_list)
-    cred_list=convert_string_to_list(cred_list)
-    print(type(cred_list))
-    print(cred_list[0])
-    username=cred_list[0]
-    email=cred_list[1]
-    password=cred_list[2]
-    confirmPassword=cred_list[3]
-    travel_type=button_value
-    db=client["YatriGPT"]
-    collection=db["UserInfo"]
-    credential={"name":f"{username}","email":f"{email}","password":f"{password}","travel-type":f"{travel_type}"}
-    result=collection.insert_one(credential)
+    cred_list = convert_string_to_list(cred_list)
+
+    username = cred_list[0]
+    email = cred_list[1]
+    password = cred_list[2]
+    confirmPassword = cred_list[3]
+
+    db = client["YatriGPT"]
+    collection = db["UserInfo"]
+
+    credential = {
+        "name": f"{username}",
+        "email": f"{email}",
+        "password": f"{password}",
+        "travel-type": f"{selected_types}"
+    }
+    result = collection.insert_one(credential)
     if result.inserted_id:
         print(f"Data inserted successfully. Inserted ID: {result.inserted_id}")
     else:
-        print("Failed to inser data")
-    return f"The clicked button value is: {button_value}, Cred list: {cred_list}"
+        print("Failed to insert data")
+
+    return redirect(url_for("index"))
+
 if __name__ == '__main__':
     app.run(debug=True)
