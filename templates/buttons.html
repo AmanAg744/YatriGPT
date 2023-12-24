@@ -2,15 +2,126 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Checkbox List</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Istok+Web&display=swap" rel="stylesheet">
+    <title>Document</title>
 </head>
+<style>
+    body{
+        background-color: #151515;
+    }
+    button {
+        border: none;
+        background-color: transparent;
+        padding: 0;
+        cursor: pointer;
+    }
+    .btn-check{
+        display: none;
+    }
+    .container{
+        padding: 0px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 90px;
+        height: 100%;
+        width: 100vw;
+    }
+    .btn{
+        font-weight: 400;
+        font-family: 'Istok Web', sans-serif;
+        border-radius: 20px;
+        height: 50px;
+        color: #000000;
+        background-color: grey;
+        margin:30px;
+        width: 150px;
+        align-items: center;
+        justify-content: center;
+        padding-top: 12.5px;
+    }
+    .btn-check:checked + .btn {
+        background-color: white;
+    }
+    .buttonc{
+        padding-top: 1.5px;
+        font-family: 'Istok Web', sans-serif;
+        border-radius: 20px;
+        outline: none;
+        height: 50px;
+        background-color: rgb(39, 40, 38);
+        margin:30px;
+        width: 150px;
+        align-items: center;
+        justify-content: center;
+        color: aliceblue;
+        box-shadow: none;
+    }
+    .row{
+        align-items: center;
+        padding: 0px;
+        margin: 15px;
+    }
+    .row-buttons{
+        display: flex;
+        justify-content: space-evenly;
+    }
+    .heading{
+        color: whitesmoke;
+        top: 33px;
+        position: relative;
+        margin: 0;
+        left: 0;
+    }
+</style>
 <body>
-    <form action="/button_clicked" method="post">
-        <input type="hidden" name="cred_list" value="{{ cred_list }}">
-        <label><input type="checkbox" name="travel_type[]" value="Mountains"> Mountains</label><br>
-        <label><input type="checkbox" name="travel_type[]" value="Beaches"> Beaches</label><br>
-        <label><input type="checkbox" name="travel_type[]" value="Temples"> Temples</label><br>
-        <button type="submit">Continue</button>
-    </form>
+    
+    <div class="container">
+        <div class="heading">
+            <h1>Select Your Favourite Destinations</h1>
+        </div>
+        <form action="/button_clicked" method="post">
+            <div class="row">
+                <input type="hidden" name="cred_list" value="{{ cred_list }}">
+                <input type="checkbox" class="btn-check" id="btn-check-1" autocomplete="off" name="travel_type[]" value="mountain">
+                <label id="button-1" class="btn" for="btn-check-1">Mountains</label>
+
+                <input type="checkbox" class="btn-check" id="btn-check-2"  autocomplete="off" name="travel_type[]" value="ocean">
+                <label id="button-2" class="btn" for="btn-check-2">Oceans</label>
+
+                <input type="checkbox" class="btn-check" id="btn-check-3" autocomplete="off" name="travel_type[]" value="beach">
+                <label id="button-3" class="btn" for="btn-check-3">Beaches</label>
+            </div>
+            <div class="row">
+                <input type="checkbox" class="btn-check" id="btn-check-4" autocomplete="off" name="travel_type[]" value="sanctuary">
+                <label id="button-4" class="btn" for="btn-check-4">Sanctuaries</label>
+
+                <input type="checkbox" class="btn-check" id="btn-check-5"  autocomplete="off" name="travel_type[]" value="forest">
+                <label id="button-5" class="btn" for="btn-check-5">Forests</label>
+
+                <input type="checkbox" class="btn-check" id="btn-check-6" autocomplete="off" name="travel_type[]" value="temple">
+                <label id="button-6" class="btn" for="btn-check-6">Temples</label>
+            </div>
+            <div class="row">
+                <input type="checkbox" class="btn-check" id="btn-check-7" autocomplete="off" name="travel_type[]" value="rural">
+                <label id="button-7" class="btn" for="btn-check-7">Rural</label>
+
+                <input type="checkbox" class="btn-check" id="btn-check-8"  autocomplete="off" name="travel_type[]" value="city">
+                <label id="button-8" class="btn" for="btn-check-8">Cities</label>
+
+                <input type="checkbox" class="btn-check" id="btn-check-9" autocomplete="off" name="travel_type[]" value="historic-place">
+                <label id="button-9" class="btn" for="btn-check-9">Historic Places</label>
+            </div>
+            <div class="row-buttons">
+                <button type="submit" class="buttonc" name="sub" value="not-sure">Not Sure</button>
+                <button type="submit" class="buttonc" name="sub" >Continue</button>
+            </div>
+        </form>
+    </div>
 </body>
 </html>
