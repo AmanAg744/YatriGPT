@@ -36,15 +36,16 @@ def signup_get():
         query = {"email": email}
         existing_user=collection.find_one(query)
         if email=="" or password =="" or confirmPassword=="" or username=="":
-            return "fields are left empty"
+            return render_template("signup_message.html",message="Fields are left empty.")
         elif existing_user:
-            return f"The user with emailid:{email} exists"
+            return render_template("signup_message.html",message=f"The user with emailid: {email} exists.")
         elif password!=confirmPassword:
-            return "The password is not equal to confirm password"
+            return render_template("signup_message.html",message="The password is not equal to confirm password")
         elif password==confirmPassword:
             return redirect(url_for("travel_type", cred_list=cred_list))            
         return redirect(url_for("travel_type"))
-    return "Failure"
+    print("Failure")
+    return render_template("signup_message.html",message="Please re-enter.")
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -56,14 +57,15 @@ def login():
         cred_query = {"email": email,"password":password}
         cred_found=collection.find_one(cred_query)
         if email=="" or password =="":
-            return "fields are left empty"
+             return render_template("index_message.html",message="Fiels are left empty")
         elif cred_found:
             print(cred_found["name"])
             user_name=cred_found["name"]
             return f"Welcome {user_name}"
         else:
-            return "Email or Password is not correct"
-    return "Failure"
+            return render_template("index_message.html",message="Email or Password is not correct")
+    print("failure")
+    return render_template("index_message.html",message="Please re-enter")
 
 def convert_string_to_list(string_list):
     try:
