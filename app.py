@@ -39,6 +39,8 @@ def signup_get():
             return "fields are left empty"
         elif existing_user:
             return f"The user with emailid:{email} exists"
+        elif password!=confirmPassword:
+            return "The password is not equal to confirm password"
         elif password==confirmPassword:
             return redirect(url_for("travel_type", cred_list=cred_list))            
         return redirect(url_for("travel_type"))
@@ -60,7 +62,7 @@ def login():
             user_name=cred_found["name"]
             return f"Welcome {user_name}"
         else:
-            return "user not found please signup"
+            return "Email or Password is not correct"
     return "Failure"
 
 def convert_string_to_list(string_list):
