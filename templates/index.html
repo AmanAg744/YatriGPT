@@ -16,8 +16,31 @@ a.login{
     color: #FFF;
     cursor: pointer;
 }
+button {
+    border: none;
+    background-color: transparent;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: none;
+    color: #151515;
+}
 div.password{
     margin-top:5px;
+}
+.buttonc{
+    padding-top: 7px;
+    font-family: 'Blinker', sans-serif;
+    border-radius: 14px;
+    outline: none;
+    width: 4.5rem;
+    height: 2.5rem;
+    background-color: rgb(39, 40, 38);
+    margin:30px;
+    align-items: center;
+    justify-content: center;
+    background-color: #A39F9F;
+    color: #292828;
+    box-shadow: none;
 }
 div.login-p{
     padding-top: 7px;
@@ -128,7 +151,7 @@ img{
 .form-group .btn-row button {
     width: 5rem;
     height: 2.5rem;
-    padding: 10px;
+    padding: 9px;
     border: none;
     border-radius: 0.8125rem;
     cursor: pointer;
@@ -154,9 +177,7 @@ img{
                 <div class="btn-row">
                     <div class="login-p">
                         <label for="login">
-                            <div class="login">
-                                <a class="login" accesskey="l" onclick="myFunction()">Login</a>
-                            </div>
+                            <button type="submit" class="buttonc" name="sub" value="not-sure">Login</button>
                         </label>
                     </div>
                     <div class="signup-p">
@@ -176,10 +197,5 @@ img{
             <p>Aapki Yatra Mangalmaye Ho</p>
         </div>
     </div>
-<script>
-    function myFunction() {
-        document.getElementById("loginForm").submit();
-    }
-</script>
 </body>
 </html>
