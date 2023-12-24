@@ -110,10 +110,9 @@ def button_clicked():
     result = collection.insert_one(credential)
     if result.inserted_id:
         print(f"Data inserted successfully. Inserted ID: {result.inserted_id}")
+        return redirect(url_for("index"))
     else:
-        print("Failed to insert data")
-
-    return redirect(url_for("index"))
+        return "Failed to insert data"
 
 if __name__ == '__main__':
     app.run(debug=True)
