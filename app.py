@@ -3,6 +3,11 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 import json
 from ast import literal_eval
+import speech_recognition as sr
+import os
+
+# Replace 'command_here' with your actual command
+command = 'ffmpeg -i "E:\YatriGPT App\input.mp3" "E:\YatriGPT App\output.wav"'
 
 # Replace the placeholder with your Atlas connection string
 uri = "mongodb+srv://AnirudhAgrawal1244:Anirudh%40124@anirudhscluster.ccvhnqb.mongodb.net/"
@@ -61,7 +66,7 @@ def login():
         elif cred_found:
             print(cred_found["name"])
             user_name=cred_found["name"]
-            return f"Welcome {user_name}"
+            return render_template("main.html")
         else:
             return render_template("index_message.html",message="Email or Password is not correct")
     print("failure")
@@ -117,6 +122,33 @@ def button_clicked():
         return redirect(url_for("index"))
     else:
         return "Failed to insert data"
+    
+@app.route('/save_audio', methods=['POST'])
+def save_audio():
+    if 'audio' in request.files:
+        audio = request.files['audio']
+        audio.save(r'E:\YatriGPT App\input.mp3')# Specify the path to save the audio file
+        # Run the command in the command prompt
+        os.system(command)
+        audio_file = "E:\YatriGPT App\output.wav"
+
+        recognizer = sr.Recognizer()
+
+        with sr.AudioFile(audio_file) as source:
+            audio = recognizer.record(source)
+
+        try:
+            # Recognize speech using Google Speech Recognition
+            recorded_text = recognizer.recognize_google(audio)
+            print(f"Text from audio: {recorded_text}")
+        except sr.UnknownValueError:
+            print("Could not understand the audio")
+        except sr.RequestError as e:
+            print(f"Error: {e}")
+        os.remove("input.mp3")
+        os.remove("output.wav")
+        return 'Audio file saved successfully!'
+    return 'No audio received.'
 
 if __name__ == '__main__':
     app.run(debug=True)
