@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Istok+Web&display=swap" rel="stylesheet">
+    <title>Homepage</title>
+</head>
+<style>
+    *{
+        font-family: 'Istok Web', sans-serif;
+        margin: 0;
+        padding: 0;
+    }
+    .container{
+        display: flex;
+    }
+    .main{
+        height: 100vh;
+        width: 75vw;
+        background-color: #151515;
+    }
+    .nav{
+        justify-content: center;
+        width: 25vw;
+        height: 100vh;
+        background-color: #201E1E;
+        display: flex;
+        flex-direction: column;
+    }
+    .today{
+        color: aliceblue;
+        width: 98%;
+        padding-left: 10px;
+        padding-top: 18px;
+        padding-bottom: 8px;
+    }
+    
+    .yesterday{
+        color: aliceblue;
+        width: 98%;
+        padding-left: 10px;
+        padding-top: 18px;
+        padding-bottom: 8px;
+    }
+    li{
+        padding-top: 18px;
+        padding-bottom: 0px;
+    }
+    .old{
+        margin-top: 10px;
+        width: 98%;
+        padding-left: 10px;
+        height: fit-content;
+        border-width: 0px;
+        outline: 0;
+    }
+    .old-button{
+        cursor: pointer;
+        font-size: large;
+        color: white;
+        background-color: #323030;
+        border-radius: 10px;
+        width: 40%;
+        height: 45px;
+        border-width: 0;
+    }
+    .explore{
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        background-color: #2D2B2B;
+        height: 30%;
+        justify-content: center;
+        align-items: center;
+        border-radius: 30px;
+        margin-left: 10px;
+        margin-right: 10px;
+    }
+    .search{
+        margin-top: 20px;
+        margin-left: 10px;
+        width: 99%;
+        padding: 0px;
+        height: 6%;
+    }
+    input{
+        width: 95%;
+        height:100%;
+        border-radius: 10px;
+    }
+    .row{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: 50%;
+    }
+    .option{
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 30px;
+        width: 50%;
+        margin: 20px;
+        height: 75%;
+        background-color: rgba(163, 159, 159,0.14);
+        border-color: white;
+        color: #FFEDED;
+        font-size: large;
+    }
+    input{
+        width: 50%;
+        background-color: #494545;
+        padding: 0px;
+        padding-left: 5px;
+        border-width: 0;
+    }
+    input.text{
+        width: 75%;
+        height: 100%;
+        margin-right: 5px;
+    }
+    input.submit{
+        cursor: pointer;
+        width: 25%;
+        height: 100%;
+        margin-right: 12px;
+        color: black;
+        background-color: white;
+        text-align: center;
+        padding-right: 6px;
+    }
+    h3{
+        font-family: 'Istok Web', sans-serif;
+        font-family: 'Open Sans', sans-serif;
+        font-family: 'Roboto', sans-serif;
+    }
+    .main{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .mic-button{
+        border:none;
+        width: 70px;
+        height: 70px;
+        border-radius: 45px;
+        background-color: beige;
+        margin: 20px;
+        cursor: pointer;
+    }
+    .mic-icon{
+        padding-left: 0px;
+        padding-top: 0px;
+        height: 40px;
+        width: 40px;
+    }
+    form{
+        display: flex;
+        flex-direction: row;
+        width: 98%;
+        height: 100%;
+    }
+    p{
+        color: rgb(70, 70, 71);
+        margin: 0;
+        padding: 0;
+    }
+</style>
+<body>
+    <div class="container">
+        <div class="nav">
+            <div class="today">
+                <div class="heading">
+                    <h3>Today</h3>
+                </div>
+                <ul>
+                    <li>I want to visit beaches</li>
+                    <li>I want to visit oceans</li>
+                    <li>I want to commit suicide</li>
+                </ul>
+            </div>
+            <div class="yesterday">
+                <div class="heading">
+                    <h3>Yesterday</h3>
+                </div>
+                <ul>
+                    <li>I want to visit beaches</li>
+                    <li>I want to visit oceans</li>
+                    <li>I want to commit suicide</li>
+                </ul>
+            </div>
+            <div class="old">
+                <button class="old-button">Older Chats</button>
+            </div>
+            <div class="explore">
+                <div class="row">
+                    <button class="option">Agra</button>
+                    <button class="option">Agra</button>
+                </div>
+                <div class="row">
+                    <button class="option">Agra</button>
+                    <button class="option">Agra</button>
+                </div>
+            </div>
+            <div class="search">
+                <form action="/submit_text" method="post">
+                    <input class="text" type="text" placeholder="Text Search">
+                    <input class="submit" type="submit" value="Submit">
+                </form>
+            </div>
+        </div>
+        <div class="main">
+            <img src="./static/copytaj.jpg" alt="">
+            <button class="mic-button" onclick="toggleRecording()" id="recordButton"><img src="./static/mic.png" alt="" class="mic-icon"></button>
+            <audio controls id="audioElement" style="display: none;"></audio>
+            <p>Tap And Hold To Speak</p>
+        </div>
+    </div>
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+
+        async function startRecording() {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audioElement = document.getElementById('audioElement');
+                audioElement.src = audioUrl;
+                audioElement.controls = true;
+
+                const formData = new FormData();
+                formData.append('audio', audioBlob);
+
+                fetch('/save_audio', {
+                    method: 'POST',
+                    body: formData
+                }).then(response => {
+                    console.log('Audio saved successfully!');
+                }).catch(error => {
+                    console.error('Error saving audio:', error);
+                });
+
+                isRecording = false;
+                document.getElementById('recordButton').style.backgroundColor = ''; // Reset button color
+            };
+            mediaRecorder.start();
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        }
+
+        function toggleRecording() {
+            if (!isRecording) {
+                startRecording();
+                isRecording = true;
+                document.getElementById('recordButton').style.backgroundColor = 'gray'; // Change button color when recording
+            } else {
+                stopRecording();
+            }
+        }
+    </script>
+</body>
+</html>
