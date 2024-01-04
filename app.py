@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template,url_for,redirect
+from flask import Flask, request, render_template,url_for,redirect,make_response,session,jsonify
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 import json
@@ -15,12 +15,16 @@ import requests
 import re
 from geopy.geocoders import Nominatim
 import time
-
-
+from geopy.exc import GeocoderInsufficientPrivileges
 
 API_KEY = 'AIzaSyBnZeMv7ivrYEy4kMR7ewMoWcuabfr06Hs'
 latitude_n = 13.3409
 longitude_n = 74.7421
+
+header_trip_adviser=headers = {
+    'X-RapidAPI-Key': "87ef8e1bc1msh56e2b9562834468p1d600ajsnbadb2e77ee73",
+    'X-RapidAPI-Host': "tripadvisor16.p.rapidapi.com"
+}
 
 # Download NLTK data if not already downloaded
 # import nltk
@@ -115,7 +119,7 @@ def convert_string_to_list(string_list):
 @app.route('/travel_type')
 def travel_type():
     cred_list = request.args.get("cred_list")
-    print(cred_list)
+    print(cred_list) 
     cred_list=convert_string_to_list(cred_list)
     print(type(cred_list))
     print("Name: ", cred_list[0])
@@ -150,33 +154,40 @@ def button_clicked():
         return redirect(url_for("index"))
     else:
         return "Failed to insert data"
-    
-@app.route('/save_audio', methods=['POST'])
-def save_audio():
-    if 'audio' in request.files:
-        audio = request.files['audio']
-        audio.save(r'E:\YatriGPT-main\input.mp3')# Specify the path to save the audio file
-        # Run the command in the command prompt
-        os.system(command)
-        audio_file = "E:\YatriGPT-main\output.wav"
 
-        recognizer = sr.Recognizer()
+#Speech to text using java script to make it deployable
+# @app.route('/save_audio', methods=['POST'])
+# def save_audio():
+#     if 'audio' in request.files:
+#         audio = request.files['audio']
+#         audio.save(r'E:\YatriGPT-main\input.mp3')# Specify the path to save the audio file
+#         # Run the command in the command prompt
+#         os.system(command)
+#         audio_file = "E:\YatriGPT-main\output.wav"
 
-        with sr.AudioFile(audio_file) as source:
-            audio = recognizer.record(source)
+#         recognizer = sr.Recognizer()
 
-        try:
-            # Recognize speech using Google Speech Recognition
-            recorded_text = recognizer.recognize_google(audio)
-            print(f"Text from audio: {recorded_text}")
-        except sr.UnknownValueError:
-            print("Could not understand the audio")
-        except sr.RequestError as e:
-            print(f"Error: {e}")
-        os.remove("input.mp3")
-        os.remove("output.wav")
-        return redirect(url_for('chats',recorded_text=recorded_text))
-    return 'No audio received.'
+#         with sr.AudioFile(audio_file) as source:
+#             audio = recognizer.record(source)
+
+#         try:
+#             # Recognize speech using Google Speech Recognition
+#             recorded_text = recognizer.recognize_google(audio)
+#             print(f"Text from audio: {recorded_text}")
+#         except sr.UnknownValueError:
+#             print("Could not understand the audio")
+#         except sr.RequestError as e:
+#             print(f"Error: {e}")
+#         os.remove("input.mp3")
+#         os.remove("output.wav")
+#         print(recorded_text)
+            
+#         # Storing fetched data in the session
+#         session['query_text'] = recorded_text
+#         # return redirect(url_for('loading'))
+#         # return redirect(url_for('loading',recorded_text=recorded_text))
+#         return redirect(url_for('chats',recorded_text=recorded_text))
+#     return 'No audio received.'
 
 def detect_intent_text(project_id, session_id, text, language_code):
     session_client = dialogflow.SessionsClient()
@@ -215,32 +226,6 @@ def find_nearby_beaches(api_key, lat, lng,keywords):
     else:
         return "Failed to fetch data."
 
-def get_airport_info(destination):
-    url = "https://tripadvisor16.p.rapidapi.com/api/v1/flights/searchAirport"
-
-    querystring = {"query": destination	}
-
-    headers = {
-	"X-RapidAPI-Key": "b767d8456bmshce1a06fcb713dc3p184fa3jsn4d8515f2c503",
-	"X-RapidAPI-Host": "tripadvisor16.p.rapidapi.com"
-}
-
-    
-    
-    response = requests.get(url, headers=headers, params=querystring)
-    
-    if response.status_code == 200:
-        data = response.json()
-        if data.get("status") and data.get("data"):
-            airports = data["data"]
-            for airport in airports:
-                airport_code = airport.get("airportCode")
-                return airport_code
-        else:
-            print("No airport information found.")
-    else:
-        print(f"Error: {response.status_code}")
-
 
 def get_coordinates(city):
     try:
@@ -260,15 +245,33 @@ def get_coordinates(city):
         time.sleep(1)
         get_coordinates(city)
 
+def get_airport_info(destination):
+    url = "https://tripadvisor16.p.rapidapi.com/api/v1/flights/searchAirport"
+
+    querystring = {"query": destination	}
+
+    headers = header_trip_adviser
+
+    response = requests.get(url, headers=headers, params=querystring)
+    
+    if response.status_code == 200:
+        data = response.json()
+        if data.get("status") and data.get("data"):
+            airports = data["data"]
+            for airport in airports:
+                airport_code = airport.get("airportCode")
+                return airport_code
+        else:
+            print("No airport information found.")
+    else:
+        print(f"Error: {response.status_code}")
+
 def get_location_id(city):
     url = "https://tripadvisor16.p.rapidapi.com/api/v1/restaurant/searchLocation"
 
     querystring = {"query": city}
 
-    headers = {
-	"X-RapidAPI-Key": "b767d8456bmshce1a06fcb713dc3p184fa3jsn4d8515f2c503",
-	"X-RapidAPI-Host": "tripadvisor16.p.rapidapi.com"
-    }
+    headers= header_trip_adviser
 
     response = requests.get(url, headers=headers, params=querystring)
 
@@ -283,18 +286,248 @@ def get_location_id(city):
     else:
         print("Error in API request. Status code:", response.status_code)
 
+# @app.route('/chats', methods=['GET'])
+# def chats():
+#     session_id = str(uuid.uuid4())
+#     query_text = request.args.get("recorded_text")
+#     response_text = detect_intent_text(project_id, session_id, query_text, language_code)
+#     # Extract keywords from the response text
+#     print(response_text)
+#     keywords=[]
+#     keywords = extract_keywords(query_text)
+#     print("Keywords:", keywords)
+    
+#     # Rest of the code remains unchanged
+#     user_input =response_text
+#     match = re.search(r'from\s+(\w+)\s+to\s+(\w+)\s+on\s+(\d{4}-\d{2}-\d{2})', user_input, re.IGNORECASE)
+#     match1 = re.search(r'in\s+(\w+)\s+for\s+(\d{4}-\d{2}-\d{2})\s+-\s+(\d{4}-\d{2}-\d{2})', user_input, re.IGNORECASE)
+#     match2 = re.search(r'top\s+(\w+)\s+in\s+(\w+)',user_input, re.IGNORECASE)
 
-@app.route('/chats')
-def chats():
+#     if match:
+#         from_place = match.group(1)  # Extracting 'from' location
+#         to_place = match.group(2)    # Extracting 'to' location
+#         date = match.group(3)        # Extracting date
+#         from_place_code=str(get_airport_info(from_place))
+#         to_place_code=str(get_airport_info(to_place))
+#         print(f"From: {from_place}")
+#         print(f"To: {to_place}")
+#         print(f"Date: {date}")
+#         print("from-code:",from_place_code)
+#         print("to-code:",to_place_code)
+#     elif match1:
+#         location = match1.group(1)       # Extracting the location
+#         start_date = match1.group(2)     # Extracting the start date
+#         end_date = match1.group(3)       # Extracting the end date
+#         city_coordinates=get_coordinates(location)
+#         loc_late=city_coordinates[0]
+#         loc_longi=city_coordinates[1]
+#         print(loc_late)
+#         print(loc_longi)
+#         print(f"Location: {location}")
+#         print(f"Start Date: {start_date}")
+#         print(f"End Date: {end_date}")
+#     elif match2:
+#         top_entity = match2.group(1)
+#         city = match2.group(2)
+#         print(f"Top entity: {top_entity}")
+#         print(f"City: {city}")
+#     else:
+#         print("Information not found.")
+#     f=0
+#     if "nearby" in query_text:
+#         beaches = find_nearby_beaches(API_KEY, latitude_n, longitude_n, keywords)
+#         if isinstance(beaches, list):
+#             if beaches:
+#                 # Sort beaches by rating in descending order
+#                 beaches_sorted = sorted(beaches, key=lambda x: x.get('rating', 0) if x.get('rating') != 'Not Rated' else 0, reverse=True)
+
+#                 print(f"Top 5 nearby {keywords[0]} (Descending Order by Rating):")
+#                 for idx, beach in enumerate(beaches_sorted[:5], start=1):
+#                     beach_name = beach['name']
+#                     beach_rating = beach.get('rating', 'Not Rated')
+#                     print(f"{idx}. {beach_name} - Rating: {beach_rating}")
+#                 f=1
+#             else:
+#                 print("No beaches found nearby.")
+#         else:
+#           print(beaches)
+#     if "flight" in keywords:
+#         try:
+#             url = "https://tripadvisor16.p.rapidapi.com/api/v1/flights/searchFlights"
+#             querystring = {
+#                     "sourceAirportCode": from_place_code,
+#                     "destinationAirportCode": to_place_code,
+#                     "date": date,
+#                     "itineraryType": "ONE_WAY",
+#                     "sortOrder": "ML_BEST_VALUE",
+#                     "numAdults": "1",
+#                     "numSeniors": "0",
+#                     "classOfService": "ECONOMY",
+#                     "pageNumber": "1",
+#                     "currencyCode": "INR"
+#                 }
+
+#             headers = header_trip_adviser
+#             response = requests.get(url, headers=headers, params=querystring)
+
+#             if response.status_code == 200:
+#                 data = response.json()
+#                 if data["status"]:
+#                     flights = data["data"]["flights"]
+#                     for flight in flights:
+#                         display_name = flight["segments"][0]["legs"][0]["marketingCarrier"]["displayName"]
+#                         image_url = flight["segments"][0]["legs"][0]["marketingCarrier"]["logoUrl"]
+#                         flight_url = flight["purchaseLinks"][0]["url"]
+#                         print(f"Airline: {display_name}")
+#                         print(f"Flight URL: {flight_url}")
+#                         print(f"Logo URL: {image_url}")
+#                         print("-----------")
+#                     f=1
+#                 else:
+#                     print("Error in API response:", data["message"])
+#             else:
+#                 print("Error in API request. Status Code:", response.status_code)
+#         except Exception as e:
+#             print("Error:",e)
+#     if "restaurants" or "restaurant" in keywords:
+#         try:
+#             url = "https://tripadvisor16.p.rapidapi.com/api/v1/restaurant/searchRestaurants"
+
+#             querystring = {"locationId": get_location_id(city)}
+        
+#             headers = {
+# 	        "X-RapidAPI-Key": "35756683e0msh6c456b713ac4d9dp1093ccjsn17fc30da80ea",
+# 	        "X-RapidAPI-Host": "tripadvisor16.p.rapidapi.com"
+#             }
+        
+#             response = requests.get(url, headers=headers, params=querystring)
+        
+#             if response.status_code == 200:
+#                 data_list = response.json().get("data", [])
+        
+#                 # Sort restaurants based on rating (highest to lowest)
+#                 sorted_restaurants = sorted(data_list["data"], key=lambda x: x["averageRating"], reverse=True)
+        
+#                 # Loop through each restaurant entry in the sorted list
+#                 img_list=[]
+#                 for restaurant in sorted_restaurants:
+#                     # Extract and print the details
+#                     name = restaurant["name"]
+#                     img_url = restaurant["thumbnail"]["photo"]["photoSizes"][0]["url"]
+#                     reviewpg_url = restaurant["reviewSnippets"]["reviewSnippetsList"][0]["reviewUrl"]
+#                     rating = restaurant["averageRating"]
+#                     print("Rating:", rating)
+#                     print("Name:", name)
+#                     print("Img URL:", img_url)
+#                     img_list.append(img_url)
+#                     print("Page URL:", reviewpg_url)
+#                     print("-" * 50)
+#                 return render_template('main.html', task_completed=True)
+#             else:
+#                 print("Error:", response.status_code)
+#                 print(response.text)
+#             image_data = {
+#                 "images": img_list
+#             }
+            
+#             # Storing fetched data in the session
+#             session['image_data'] = image_data['images']
+            
+#             # Redirect to another route once data is fetched and stored
+#             return redirect(url_for('response_route'))
+#         except Exception as e:
+#             print("Error:",e)
+#     if "hotel" in keywords:
+#         try:
+#             url = "https://tripadvisor16.p.rapidapi.com/api/v1/hotels/searchHotelsByLocation"
+#             querystring = {
+#                 "latitude": loc_late,
+#                 "longitude": loc_longi,
+#                 "checkIn": start_date,
+#                 "checkOut": end_date,
+#                 "pageNumber": "1",
+#                 "currencyCode": "INR"
+#             }
+
+#             headers = header_trip_adviser
+#             response = requests.get(url, headers=headers, params=querystring)
+
+#             # Check if the request was successful (status code 200)
+#             if response.status_code == 200:
+#                 data_list = response.json().get("data", [])
+
+#                 # Sort hotels based on rating (highest to lowest)
+#                 sorted_hotels = sorted(data_list["data"], key=lambda x: x["bubbleRating"]["rating"], reverse=True)
+
+#                 # Loop through each hotel entry in the sorted list
+#                 for hotel in sorted_hotels:
+#                     # Extract and print the details
+#                     title = hotel["title"]
+#                     external_url = hotel["commerceInfo"]["externalUrl"]
+#                     rating = hotel["bubbleRating"]["rating"]
+#                     print("Title:", title)
+#                     print("Rating:", rating)
+#                     print("External URL:", external_url)
+
+#                     print("-" * 50)
+#                 f=1
+
+#             else:
+#                 print("Error:", response.status_code)
+#                 print(response.text)
+#         except:
+#             pass
+#     return query_text
+
+@app.route('/response')
+def response_route():
+    # Retrieving data from the session
+    image_data = session.get('image_data', [])
+
+    # Rendering a template with the retrieved data
+    return render_template('index.html', image_data=image_data)
+
+@app.route('/loading', methods=['GET'])
+def loading():
+    query_text = session.get('query_text', 'No string found in the session.')
+    print("Query Text:", query_text)
+    return render_template("loading.html")
+
+def speech_to_text():
+    r = sr.Recognizer()
+ 
+    with sr.Microphone() as source:
+        r.adjust_for_ambient_noise(source)
+ 
+        playsound("Say.mp3")
+ 
+        audio = r.listen(source)
+ 
+        print("Recognizing Now .... ")
+ 
+ 
+        # recognize speech using google
+ 
+        try:
+            said_text=r.recognize_google(audio)
+            print(said_text)
+            print("Audio Recorded Successfully \n ")
+            return said_text
+ 
+        except Exception as e:
+            print("Error :  " + str(e))
+            playsound("Say2.mp3")
+            speech_to_text()
+
+@app.route('/printText')
+def printText():
     session_id = str(uuid.uuid4())
-    query_text = request.args.get("recorded_text")
+    query_text=speech_to_text()
     response_text = detect_intent_text(project_id, session_id, query_text, language_code)
-    # Extract keywords from the response text
+    print(response_text)
     keywords=[]
     keywords = extract_keywords(query_text)
     print("Keywords:", keywords)
-    
-    # Rest of the code remains unchanged
     user_input =response_text
     match = re.search(r'from\s+(\w+)\s+to\s+(\w+)\s+on\s+(\d{4}-\d{2}-\d{2})', user_input, re.IGNORECASE)
     match1 = re.search(r'in\s+(\w+)\s+for\s+(\d{4}-\d{2}-\d{2})\s+-\s+(\d{4}-\d{2}-\d{2})', user_input, re.IGNORECASE)
@@ -330,182 +563,157 @@ def chats():
         print(f"City: {city}")
     else:
         print("Information not found.")
-    response_printed = False
-    for keyword in keywords:
-        if 'nearby' in query_text:
-            print(f"List of top 5 nearby {keywords[0]}")
-            beaches = find_nearby_beaches(API_KEY, latitude_n, longitude_n,keywords)
-            if beaches != "Failed to fetch data." and beaches != "No beach found nearby.":
-                for idx, beach in enumerate(beaches, start=1):
-                    print(f"{idx}. {beach['name']}")
-                break
+    if "nearby" in query_text:
+        beaches = find_nearby_beaches(API_KEY, latitude_n, longitude_n, keywords)
+        if isinstance(beaches, list):
+            if beaches:
+                # Sort beaches by rating in descending order
+                beaches_sorted = sorted(beaches, key=lambda x: x.get('rating', 0) if x.get('rating') != 'Not Rated' else 0, reverse=True)
+
+                print(f"Top 5 nearby {keywords[0]} (Descending Order by Rating):")
+                for idx, beach in enumerate(beaches_sorted[:5], start=1):
+                    beach_name = beach['name']
+                    beach_rating = beach.get('rating', 'Not Rated')
+                    print(f"{idx}. {beach_name} - Rating: {beach_rating}") 
             else:
-                print(beaches) 
-                break
-        elif keyword=='flight' and not response_printed:
-            print("Response from Dialogflow:", response_text)
-            response_printed=True
-            try:
-                url = "https://tripadvisor16.p.rapidapi.com/api/v1/flights/searchFlights"
-                date = '2024-01-04'
-                querystring = {
-                        "sourceAirportCode":from_place_code,
-                        "destinationAirportCode":to_place_code,
-                        "date": date,
-                        "itineraryType": "ONE_WAY",
-                        "sortOrder": "ML_BEST_VALUE",
-                        "numAdults": "1",
-                        "numSeniors": "0",
-                        "classOfService": "ECONOMY",
-                        "pageNumber": "1",
-                        "currencyCode": "INR"
-                    }
-
-                headers = {
-                	"X-RapidAPI-Key": "b767d8456bmshce1a06fcb713dc3p184fa3jsn4d8515f2c503",
-                	"X-RapidAPI-Host": "tripadvisor16.p.rapidapi.com"
-                }
-
-                response = requests.get(url, headers=headers, params=querystring)
-
-                if response.status_code == 200:
-                    data = response.json()
-                    if data["status"]:
-                        flights = data["data"]["flights"]
-                        for flight in flights:
-                            display_name = flight["segments"][0]["legs"][0]["marketingCarrier"]["displayName"]
-                            logo_url = flight["segments"][0]["legs"][0]["marketingCarrier"]["logoUrl"]
-                            flight_url = flight["purchaseLinks"][0]["url"]
-                            print(f"Airline: {display_name}")
-                            print(f"Flight URL: {flight_url}")
-                            print(f"Logo URL: {logo_url}")
-                            print("-----------")
-                        break
-                    else:
-                        #front-end alert(exception handled):
-                        print("Either of the details does not exist please speak again.")
-                        break
-                else:
-                    print("Error in API request. Status Code:", response.status_code)
-            except:
-                continue
-        elif keyword=='hotel' and not response_printed:
-            print("Response from Dialogflow:", response_text)
-            response_printed=True
-            try:
-                url = "https://tripadvisor16.p.rapidapi.com/api/v1/hotels/searchHotelsByLocation"
-
-                # Take user input for latitude, longitude, check-in, and check-out dates
-                latitude = str(loc_late)
-                longitude = str(loc_longi)
-                check_in = str(start_date)
-                check_out = str(end_date)
-
-                querystring = {
-                    "latitude": latitude,
-                    "longitude": longitude,
-                    "checkIn": check_in,
-                    "checkOut": check_out,
+                print("No beaches found nearby.")
+        else:
+          print(beaches)
+    if "flight" in keywords:
+        try:
+            url = "https://tripadvisor16.p.rapidapi.com/api/v1/flights/searchFlights"
+            querystring = {
+                    "sourceAirportCode": from_place_code,
+                    "destinationAirportCode": to_place_code,
+                    "date": date,
+                    "itineraryType": "ONE_WAY",
+                    "sortOrder": "ML_BEST_VALUE",
+                    "numAdults": "1",
+                    "numSeniors": "0",
+                    "classOfService": "ECONOMY",
                     "pageNumber": "1",
                     "currencyCode": "INR"
                 }
 
-                headers = {
-                	"X-RapidAPI-Key": "b767d8456bmshce1a06fcb713dc3p184fa3jsn4d8515f2c503",
-                	"X-RapidAPI-Host": "tripadvisor16.p.rapidapi.com"
-                }
-
-
-                response = requests.get(url, headers=headers, params=querystring)
-
-                # Check if the request was successful (status code 200)
-                if response.status_code == 200:
-                    data_list = response.json().get("data", [])
-
-                    # Sort hotels based on rating (highest to lowest)
-                    sorted_hotels = sorted(data_list["data"], key=lambda x: x["bubbleRating"]["rating"], reverse=True)
-
-                    # Loop through each hotel entry in the sorted list
-                    for hotel in sorted_hotels:
-                        # Extract and print the details
-                        title = hotel["title"]
-                        external_url = hotel["commerceInfo"]["externalUrl"]
-                        rating = hotel["bubbleRating"]["rating"]
-                        print("Title:", title)
-                        print("Rating:", rating)
-                        print("External URL:", external_url)
-
-                        print("-" * 50)
-                    break
-
+            headers = header_trip_adviser
+            response = requests.get(url, headers=headers, params=querystring)
+            logo_list=[]
+            flight_name=[]
+            flight_web_url=[]
+            flight_details=[]
+            if response.status_code == 200:
+                data = response.json()
+                if data["status"]:
+                    flights = data["data"]["flights"]
+                    for i in range(5):
+                        display_name = flights[i]["segments"][0]["legs"][0]["marketingCarrier"]["displayName"]
+                        flight_name.append(display_name)
+                        image_url = flights[i]["segments"][0]["legs"][0]["marketingCarrier"]["logoUrl"]
+                        logo_list.append(image_url)
+                        flight_url = flights[i]["purchaseLinks"][0]["url"]
+                        flight_web_url.append(flight_url)
+                        print(f"Airline: {display_name}")
+                        print(f"Flight URL: {flight_url}")
+                        print(f"Logo URL: {image_url}")
+                        print("-----------")
+                    for logo_url,name,ext_url in zip(logo_list,flight_name,flight_web_url):
+                        flight_details.append({"logo":logo_url, "name":name, "website_url":ext_url})
+                    return render_template("flight_response.html",flight_details=flight_details,query_text=query_text,response_text=response_text)
                 else:
-                    print("Error:", response.status_code)
-                    print(response.text)
-                    break
-            except:
-                continue
-        elif keyword=='restaurants'or'restaurant' and not response_printed:
-            print("Response from Dialogflow:", response_text)
-            response_printed=True
-            try:
-                url = "https://tripadvisor16.p.rapidapi.com/api/v1/restaurant/searchRestaurants"
+                    print("Error in API response:", data["message"])
+            else:
+                print("Error in API request. Status Code:", response.status_code)
+        except Exception as e:
+            print("Error:",e)
+    if "restaurants" or "restaurant" in keywords:
+        try:
+            url = "https://tripadvisor16.p.rapidapi.com/api/v1/restaurant/searchRestaurants"
 
-                querystring = {"locationId": str(get_location_id(city))}
+            querystring = {"locationId": get_location_id(city)}
+        
+            headers = header_trip_adviser
+        
+            response = requests.get(url, headers=headers, params=querystring)
+        
+            if response.status_code == 200:
+                data_list = response.json().get("data", [])
+        
+                # Sort restaurants based on rating (highest to lowest)
+                sorted_restaurants = sorted(data_list["data"], key=lambda x: x["averageRating"], reverse=True)
+        
+                # Loop through each restaurant entry in the sorted list
+                names=[]
+                img_list=[]
+                restaurants_rating=[]
+                restaurant_urls=[]
+                restaurants_data=[]
+                for i in range(5):
+                    # Extract and print the details
+                    name = sorted_restaurants[i]["name"]
+                    names.append(name)
+                    img_url = sorted_restaurants[i]["thumbnail"]["photo"]["photoSizes"][0]["url"]
+                    reviewpg_url = sorted_restaurants[i]["reviewSnippets"]["reviewSnippetsList"][0]["reviewUrl"]
+                    restaurant_urls.append(reviewpg_url)
+                    rating = sorted_restaurants[i]["averageRating"]
+                    restaurants_rating.append(rating)
+                    print("Rating:", rating)
+                    print("Name:", name)
+                    print("Img URL:", img_url)
+                    img_list.append(img_url)
+                    print("Page URL:", reviewpg_url)
+                    print("-" * 50)
+                for img_url,name,stars,ext_url in zip(img_list,names,restaurants_rating,restaurant_urls):
+                    restaurants_data.append({"img_url":img_url, "name":name, "rating":stars, "rating_url":ext_url})
+                print(restaurants_data)
+                return render_template("response.html",restaurants_data=restaurants_data,query_text=query_text,response_text=response_text)
+            else:
+                print("Error:", response.status_code)
+                print(response.text)
+        except Exception as e:
+            print("Error:",e)
+    if "hotel" in keywords:
+        try:
+            url = "https://tripadvisor16.p.rapidapi.com/api/v1/hotels/searchHotelsByLocation"
+            querystring = {
+                "latitude": loc_late,
+                "longitude": loc_longi,
+                "checkIn": start_date,
+                "checkOut": end_date,
+                "pageNumber": "1",
+                "currencyCode": "INR"
+            }
 
-                headers = {
-                	"X-RapidAPI-Key": "b767d8456bmshce1a06fcb713dc3p184fa3jsn4d8515f2c503",
-                	"X-RapidAPI-Host": "tripadvisor16.p.rapidapi.com"
-                }
+            headers = header_trip_adviser
+            response = requests.get(url, headers=headers, params=querystring)
 
-                response = requests.get(url, headers=headers, params=querystring)
+            # Check if the request was successful (status code 200)
+            if response.status_code == 200:
+                data_list = response.json().get("data", [])
 
-                if response.status_code == 200:
-                    data_list = response.json().get("data", [])
+                # Sort hotels based on rating (highest to lowest)
+                sorted_hotels = sorted(data_list["data"], key=lambda x: x["bubbleRating"]["rating"], reverse=True)
 
-                    # Sort restaurants based on rating (highest to lowest)
-                    sorted_restaurants = sorted(data_list["data"], key=lambda x: x["averageRating"], reverse=True)
+                # Loop through each hotel entry in the sorted list
+                for hotel in sorted_hotels:
+                    # Extract and print the details
+                    title = hotel["title"]
+                    external_url = hotel["commerceInfo"]["externalUrl"]
+                    rating = hotel["bubbleRating"]["rating"]
+                    print("Title:", title)
+                    print("Rating:", rating)
+                    print("External URL:", external_url)
 
-                    # Loop through each restaurant entry in the sorted list
-                    for restaurant in sorted_restaurants:
-                        # Extract and print the details
-                        name = restaurant["name"]
-                        img_url = restaurant["thumbnail"]["photo"]["photoSizes"][0]["url"]
-                        reviewpg_url = restaurant["reviewSnippets"]["reviewSnippetsList"][0]["reviewUrl"]
-                        rating = restaurant["averageRating"]
-                        print("Rating:", rating)
-                        print("Name:", name)
-                        print("Img URL:", img_url)
-                        print("Page URL:", reviewpg_url)
-                        print("-" * 50)
-                    break
-                else:
-                    print("Error:", response.status_code)
-                    print(response.text)
-                    break
-            except:
-                continue
-        else:
-           if not response_printed:
-            print("Response from Dialogflow:", response_text)
-            response_printed=True
-           continue
-    # beaches = find_nearby_beaches(API_KEY, latitude, longitude, keywords)
-    # if isinstance(beaches, list):
-    #     if beaches:
-    #         # Sort beaches by rating in descending order
-    #         beaches_sorted = sorted(beaches, key=lambda x: x.get('rating', 0) if x.get('rating') != 'Not Rated' else 0, reverse=True)
-
-    #         print(f"Top 5 nearby {keywords[0]} (Descending Order by Rating):")
-    #         for idx, beach in enumerate(beaches_sorted[:5], start=1):
-    #             beach_name = beach['name']
-    #             beach_rating = beach.get('rating', 'Not Rated')
-    #             print(f"{idx}. {beach_name} - Rating: {beach_rating}")
-    #     else:
-    #         print("No beaches found nearby.")
-    # else:
-    #   print(beaches)
-    print(query_text)
-    return query_text
+                    print("-" * 50)
+            else:
+                print("Error:", response.status_code)
+                print(response.text)
+        except:
+            pass
+    return f"Query: {query_text}\nResponse: {response_text}"
+    
+    
 
 if __name__ == '__main__':
+    app.secret_key = 'your_secret_key_here'
+
     app.run(debug=True)
