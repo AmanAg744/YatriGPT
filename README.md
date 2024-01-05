@@ -53,7 +53,7 @@ Before running the application, ensure that you set up the necessary environment
 - Replace 'your_trip_advisor_api_key_here' with your actual TripAdvisor API key.
 - Define values for latitude_n and longitude_n.
 
-# Run the Application:
+## Run the Application:
 
 To run the application, execute the following command:
 
