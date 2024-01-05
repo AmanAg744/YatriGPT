@@ -84,6 +84,12 @@ Open your web browser and navigate to [http://localhost:5000](http://localhost:5
 - pyttsx3
 - requests
 
+# Contributors
+
+- Aman Agarwal - (https://github.com/AmanAg744)
+- Anirudh Agrawal - (https://github.com/AnirudhA124)
+- Yash Bharadwaj - (https://github.com/meanmachine889)
+
 # License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
