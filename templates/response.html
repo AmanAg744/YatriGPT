@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Istok+Web&family=Open+Sans:wght@300;500&family=Roboto:wght@100&display=swap" rel="stylesheet">
+    <title>YatriGPT-Chats</title>
+</head>
+<style>
+    body{
+        display: flex;
+        background-color: #151515;
+        justify-content: center;
+        align-items: center;
+        font-family: 'Istok Web', sans-serif;
+        font-family: 'Open Sans', sans-serif;
+        font-family: 'Roboto', sans-serif;
+    }
+    img{
+        height: 40px;
+        width: 40px;
+    }
+    .container{
+        height: 90%;
+        width: 47%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+    }
+    .fixed-bottom{
+        height: 10%;
+    }
+    .user-icon{
+        display:flex;
+        height: fit-content;
+        align-items: center;
+    }
+    .user-icon>p{
+        font-weight: bold;
+        font-size: 25px;
+    }
+    .user{
+        width: 70%;
+    }
+    p{
+        color: white;
+        padding-left: 10px;
+        font-size: 20px;
+    }
+    .question{
+        margin-top: -19px;
+        text-align: left;
+        width: 100%;
+    }
+    .question>p{
+        padding-left: 20px;
+    }
+    li{
+        color: white;
+        text-align: left;
+        padding-left: 8px;
+    }
+    ul{
+        list-style: none;
+    }
+    .option{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        height: fit-content;
+        width: 100%;
+        background-color: rgb(102, 105, 105);
+        padding: 5px;
+        border-radius: 10px;
+        border: none;
+    }
+    .option:hover{
+        cursor: pointer;
+        background-color: rgb(70, 72, 72);
+    }
+    .dest{
+        border-radius: 5px;
+    }
+    ul{
+        padding: 5px;
+    }
+    .option{
+        padding: 7px;
+        display: grid;
+        grid-template: 0.5fr 1fr 0.5fr/0.75fr 1fr 0.5fr;
+        width: 100%;
+        height: 100%;
+        margin: 10px;
+    }
+    .dest{
+        padding: 0;
+        margin: 0;
+        grid-area: 1/1/4/2;
+        height: 100%;
+        width: 100%;
+    }
+    .heading{
+        text-align: left;
+        font-size: 1rem;
+        padding: 0;
+        margin-left:5px;
+        grid-area: 1/2/2/3;
+        font-weight: bolder;
+    }
+    .description{
+        font-size: 1rem;
+        padding: 0;
+        margin: 0;
+        margin-left: 5px;
+        grid-area: 2/2/2/4;
+    }
+    .Rating{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        grid-area: 3/1/4/2;
+        font-size: small;
+    }
+    button{
+        cursor: pointer;
+        border-radius: 0.8rem;
+        border: none;
+        width: 85%;
+        height: 72%;
+        font-size: 0.9rem;
+        grid-area: 3/3/4/4;
+        margin-right: 4%;
+    }
+    .rate{
+        font-weight: bold;
+        padding-top: 0.2rem;
+        color: black;
+        border-radius: 1rem;
+        text-align: center;
+        height: 50%;
+        width: 50%;
+        background-color: rgb(147, 151, 151);
+    }
+    .star{
+        margin-top: 0.1rem;
+        height: 0.7rem;
+        width: 0.7rem;
+    }
+    .fixed-bottom {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: fixed;
+        padding: 0%;
+        margin: 0%;
+        bottom: 0;
+        width: 100%;
+        height: 10%; /* Adjust the height as needed */
+        background-color: #1f1f1f;
+    }
+    .search{
+        height: 100%;
+        width: 100%;
+        justify-content: center;
+        align-items: center;
+        display: flex;
+    }
+    form{
+        width: 30%;
+    }
+    .submit{
+        background-color: #747171;
+        border: none;
+        font-size: medium;
+        width: 20%;
+        height: 55px;
+        border-radius: 27px;
+    }
+    .submit:hover{
+        cursor: pointer;
+        background-color: #9c9999;
+    }
+    .text{
+        padding-left: 5px;
+        cursor: pointer;
+        border: none;
+        background-color: #424040;
+        width: 70%;
+        height: 50px;
+        border-radius: 20px;
+    }
+    .mic-button{
+        background-color: #9b9999;
+        padding: 0%;
+        margin: 0%;
+        height: 50px;
+        border-radius: 100px;
+        width: 4%;
+    }
+    .mic-button:hover{
+        background-color: #b9b7b7;
+        cursor: pointer;
+    }
+    .mic-icon{
+        height: 50%;
+        width: 40%;
+    }
+    
+</style>
+<body>
+    <div class="container">
+        {% for chat in mychats  %}
+            <div class="user">
+                <div class="user-icon">
+                    <img src="./static/user.png" alt="">
+                    <p>User</p>
+                </div>
+                <div class="question">
+                    <p>{{ chat.query_text }}</p>
+                </div>
+            </div>
+            <div class="user">
+                <div class="user-icon">
+                    <img src="./static/user.png" alt="">
+                    <p>YatriGPT</p>
+                </div>
+                <div class="question">
+                    <p>{{ chat.response_text }}</p>
+                    <ul>
+                        {% for key in chat.details %}
+                            <li>
+                                <div class="option">
+                                    <img class="dest" src="{{ key.img_url }}" alt="">
+                                    <p class="heading">{{ key.name }} </p>
+                                    <p class="Rating">
+                                        <div class="rate">
+                                            {{ key.rating }}
+                                            <img class="star" src="./static/star.png" alt="">
+                                        </div>
+                                    </p>
+                                    <button onclick="openInNewTab('{{ key.ext_url }}')">Visit</button>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <div class="fixed-bottom">
+        <div class="search">
+            <form action="/submit_text" method="post">
+                <input class="text" type="text" placeholder="Text Search">
+                <input class="submit" type="submit" value="Submit">
+            </form>
+            <button class="mic-button" onclick="redirectToATT()" id="startRecordingButton">
+                <img src="./static/mic.png" alt="" class="mic-icon">
+            </button>
+        </div>
+    </div>
+</body>
+<script>
+    function openInNewTab(url) {
+        var newWindow = window.open(url, '_blank');
+        newWindow.focus();
+    }
+    function redirectToATT(){
+        window.location.href='/mic2_response'
+    }
+</script>
+</html>
