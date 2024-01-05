@@ -9,6 +9,9 @@
     <title>Homepage</title>
 </head>
 <style>
+    body{
+        background-color: #151515;
+    }
     *{
         font-family: 'Istok Web', sans-serif;
         margin: 0;
@@ -19,16 +22,18 @@
     }
     .main{
         height: 100vh;
-        width: 75vw;
+        width: 100vw;
         background-color: #151515;
     }
-    .nav{
+    #nav{
         justify-content: center;
-        width: 25vw;
-        height: 100vh;
+        width: 0;
+        height: 0;
         background-color: #201E1E;
         display: flex;
         flex-direction: column;
+        transition: 0.3s;
+        left: -100%;
     }
     .today{
         color: aliceblue;
@@ -99,6 +104,7 @@
         height: 50%;
     }
     .option{
+        border: none;
         cursor: pointer;
         display: flex;
         justify-content: center;
@@ -146,7 +152,7 @@
         justify-content: center;
     }
     .mic-button{
-        border:none;
+        border: none;
         width: 70px;
         height: 70px;
         border-radius: 45px;
@@ -156,7 +162,7 @@
     }
     .mic-icon{
         padding-left: 0px;
-        padding-top: 0px;
+        padding-top: 6px;
         height: 40px;
         width: 40px;
     }
@@ -171,10 +177,35 @@
         margin: 0;
         padding: 0;
     }
+    #toggleButton{
+        position: relative;
+        width: 0;
+        height: 0;
+        border-top: 15px solid transparent;
+        border-left: 30px solid #555;
+        border-bottom: 15px solid transparent;
+        margin-left: 10px;
+        margin-bottom: 161px;
+        background-color: #151515;
+    }
+
+    .nav-button{
+        display: flex;
+        justify-content: baseline;
+        align-items: end;
+        top: 20px;
+        height: 10%;
+        width: 100%;
+        border: none;
+    }
+    
+    .nav-visible{
+        left: 0;
+    }
 </style>
 <body>
     <div class="container">
-        <div class="nav">
+        <div class="nav" id="nav">
             <div class="today">
                 <div class="heading">
                     <h3>Today</h3>
@@ -217,61 +248,20 @@
         </div>
         <div class="main">
             <img src="./static/copytaj.jpg" alt="">
-            <button class="mic-button" onclick="toggleRecording()" id="recordButton"><img src="./static/mic.png" alt="" class="mic-icon"></button>
+            <button class="mic-button" onclick="redirectToATT()"  id="recordButton">
+                <img src="./static/mic.png" alt="" class="mic-icon">
+            </button>
             <audio controls id="audioElement" style="display: none;"></audio>
             <p>Tap And Hold To Speak</p>
+            <div class="nav-button">
+                <button id="toggleButton">    </button>
+            </div>
         </div>
     </div>
-    <script>
-        let mediaRecorder;
-        let audioChunks = [];
-        let isRecording = false;
-
-        async function startRecording() {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.ondataavailable = event => {
-                audioChunks.push(event.data);
-            };
-            mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                const audioUrl = URL.createObjectURL(audioBlob);
-                const audioElement = document.getElementById('audioElement');
-                audioElement.src = audioUrl;
-                audioElement.controls = true;
-
-                const formData = new FormData();
-                formData.append('audio', audioBlob);
-
-                fetch('/save_audio', {
-                    method: 'POST',
-                    body: formData
-                }).then(response => {
-                    console.log('Audio saved successfully!');
-                }).catch(error => {
-                    console.error('Error saving audio:', error);
-                });
-
-                isRecording = false;
-                document.getElementById('recordButton').style.backgroundColor = ''; // Reset button color
-            };
-            mediaRecorder.start();
-        }
-
-        function stopRecording() {
-            mediaRecorder.stop();
-            mediaRecorder.stream.getTracks().forEach(track => track.stop());
-        }
-
-        function toggleRecording() {
-            if (!isRecording) {
-                startRecording();
-                isRecording = true;
-                document.getElementById('recordButton').style.backgroundColor = 'gray'; // Change button color when recording
-            } else {
-                stopRecording();
-            }
-        }
-    </script>
 </body>
+<script>
+    function redirectToATT(){
+        window.location.href='/printText'
+    }
+</script>
 </html>
