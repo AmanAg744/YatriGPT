@@ -24,7 +24,7 @@ latitude_n = 13.3409
 longitude_n = 74.7421
 
 header_trip_adviser=headers = {
-	"X-RapidAPI-Key": "1d05d49290msh3969f4852a975ecp19a49djsn8b654a1f14f3",
+	"X-RapidAPI-Key": "bf9f13c08fmshe1af2a81d27fc87p193dedjsn52c12022a3a3",
 	"X-RapidAPI-Host": "tripadvisor16.p.rapidapi.com"
 }
 
@@ -216,25 +216,48 @@ def extract_keywords(text):
     entities = [word for word, pos in pos_tags if (pos == 'NNP' or pos == 'CD' or pos.startswith('N')) and word.lower() not in stop_words]
     return entities
 
-def find_nearby_beaches(api_key, lat, lng,keywords):
+def find_nearby_places_info(api_key, lat, lng, keywords):
     endpoint = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+    details_endpoint = "https://maps.googleapis.com/maps/api/place/details/json"
     params = {
         "key": api_key,
         "location": f"{lat},{lng}",
-        "radius": 4000,  # You can adjust the radius as needed
-        "keyword": keywords
+        "radius": 40000,  # You can adjust the radius as needed
+        "keyword": ",".join(keywords)  # Joining keywords into a comma-separated string
     }
 
-    response = requests.get(endpoint, params=params)
-    if response.status_code == 200:
+    try:
+        response = requests.get(endpoint, params=params)
+        response.raise_for_status()  # Raise an error for 4XX or 5XX status codes
         results = response.json()
+        
+        places_info = []
         if "results" in results:
-            nearby_beaches = results["results"][:5]  # Extracting the top 5 results
-            return nearby_beaches
+            nearby_places = results["results"][:5]  # Extracting the top 5 results
+            for place in nearby_places:
+                place_id = place['place_id']
+                # Fetch details for each place to get the rating, image, and website
+                details_params = {
+                    "key": api_key,
+                    "place_id": place_id,
+                    "fields": "name,rating,photos,website"
+                }
+                details_response = requests.get(details_endpoint, params=details_params)
+                details_result = details_response.json()
+                if 'result' in details_result:
+                    place_info = {
+                        "name": details_result['result'].get('name', 'N/A'),
+                        "rating": details_result['result'].get('rating', 'Not Rated'),
+                        "image_url": details_result['result'].get('photos', [{}])[0].get('photo_reference', 'N/A'),
+                        "website": details_result['result'].get('website', 'N/A')
+                    }
+                    places_info.append(place_info)
+
+            return places_info
         else:
-            return "No beach found nearby."
-    else:
-        return "Failed to fetch data."
+            return f"No {keywords[0]} found nearby."
+    except requests.exceptions.RequestException as e:
+        return f"Failed to fetch data: {e}"
 
 
 def get_coordinates(city):
@@ -550,6 +573,7 @@ def perform_text_to_speech(response_text):
 
 @app.route('/printText')
 def printText():
+    place_info=None
     session_id = str(uuid.uuid4())
     query_text=speech_to_text()
     response_text = detect_intent_text(project_id, session_id, query_text, language_code)
@@ -593,23 +617,46 @@ def printText():
     else:
         print("Information not found.")
     if "nearby" in query_text:
-        beaches = find_nearby_beaches(API_KEY, latitude_n, longitude_n, keywords)
-        if isinstance(beaches, list):
-            if beaches:
-                # Sort beaches by rating in descending order
-                response_text=f"Top 5 nearby {keywords[0]} (Descending Order by Rating):"
-                beaches_sorted = sorted(beaches, key=lambda x: x.get('rating', 0) if x.get('rating') != 'Not Rated' else 0, reverse=True)
-                print(f"Top 5 nearby {keywords[0]} (Descending Order by Rating):")
-                for idx, beach in enumerate(beaches_sorted[:5], start=1):
-                    beach_name = beach['name']
-                    beach_rating = beach.get('rating', 'Not Rated')
-                    print(f"{idx}. {beach_name} - Rating: {beach_rating}") 
-                #to pass image urls
-                return render_template("response.html",query_text=query_text,response_text=response_text)
+        places_info = find_nearby_places_info(API_KEY, latitude_n, longitude_n, keywords)  # Pass 'keywords' to the function
+        if isinstance(places_info, list):
+            if places_info:
+                response_text=f"Top 5 nearby {keywords[0]} Information:"
+                print(response_text)
+                p_name=[]
+                p_rating=[]
+                p_img=[]
+                p_ext_url=[]
+                details=[]
+                for idx, place_info in enumerate(places_info[:5], start=1):
+                    place_name = place_info['name']
+                    p_name.append(place_name)
+                    place_rating = place_info['rating']
+                    p_rating.append(place_rating)
+                    place_image_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={place_info['image_url']}&key={API_KEY}"
+                    p_img.append(place_image_url)
+                    place_website = place_info['website']
+                    p_ext_url.append(place_website)
+                    print(f"{idx}. Name: {place_name}")
+                    print(f"   Rating: {place_rating}")
+                    print(f"   Image URL: {place_image_url}")
+                    print(f"   Website: {place_website}")
+                for img_url,name,ext_url,rating in zip(p_img,p_name,p_ext_url,p_rating):
+                    details.append({"img_url":img_url, "name":name, "ext_url":ext_url, "rating":rating})
+                speech_thread = threading.Thread(target=perform_text_to_speech, args=(response_text,))
+                email_without_dot=session["email_without_dot"]
+                user_chats=client[email_without_dot]
+                collection_name=query_text
+                session["collection_name"]=collection_name
+                collection_chats=user_chats[collection_name]
+                chats={"query_text":query_text,"response_text":response_text,"details":details}
+                result_chats=collection_chats.insert_one(chats)
+                chats_all=collection_chats.find()
+                mychats=[chat for chat in chats_all]
+                print(mychats)
+                speech_thread.start()
+                return render_template("response.html",mychats=mychats)
             else:
-                print("No beaches found nearby.")
-        else:
-          print(beaches)
+                print("No places found nearby.")
     if "flight" in keywords:
         try:
             url = "https://tripadvisor16.p.rapidapi.com/api/v1/flights/searchFlights"
@@ -769,7 +816,8 @@ def printText():
                     title=str(title)
                     title=title[3:]
                     hotel_name.append(title)
-                    external_url = sorted_hotels[i].get("commerceInfo", {}).get("externalUrl","")
+                    external_url_1 = sorted_hotels[i].get("commerceInfo", {})
+                    external_url = external_url_1["externalUrl"]
                     img_url0 = sorted_hotels[i]["cardPhotos"][0]["sizes"]["urlTemplate"]
                     img_spl = img_url0.split('?')
                     img_url = img_spl[0]
@@ -807,6 +855,7 @@ def printText():
 
 @app.route('/mic2_response')
 def mic2_response():
+    place_info=None
     session_id = str(uuid.uuid4())
     query_text=speech_to_text()
     response_text = detect_intent_text(project_id, session_id, query_text, language_code)
@@ -850,23 +899,46 @@ def mic2_response():
     else:
         print("Information not found.")
     if "nearby" in query_text:
-        beaches = find_nearby_beaches(API_KEY, latitude_n, longitude_n, keywords)
-        if isinstance(beaches, list):
-            if beaches:
-                # Sort beaches by rating in descending order
-                response_text=f"Top 5 nearby {keywords[0]} (Descending Order by Rating):"
-                beaches_sorted = sorted(beaches, key=lambda x: x.get('rating', 0) if x.get('rating') != 'Not Rated' else 0, reverse=True)
-                print(f"Top 5 nearby {keywords[0]} (Descending Order by Rating):")
-                for idx, beach in enumerate(beaches_sorted[:5], start=1):
-                    beach_name = beach['name']
-                    beach_rating = beach.get('rating', 'Not Rated')
-                    print(f"{idx}. {beach_name} - Rating: {beach_rating}") 
-                #to pass image urls
-                return render_template("response.html",query_text=query_text,response_text=response_text)
+        places_info = find_nearby_places_info(API_KEY, latitude_n, longitude_n, keywords)  # Pass 'keywords' to the function
+        if isinstance(places_info, list):
+            if places_info:
+                response_text=f"Top 5 nearby {keywords[0]} Information:"
+                print(response_text)
+                p_name=[]
+                p_rating=[]
+                p_img=[]
+                p_ext_url=[]
+                details=[]
+                for idx, place_info in enumerate(places_info[:5], start=1):
+                    place_name = place_info['name']
+                    p_name.append(place_name)
+                    place_rating = place_info['rating']
+                    p_rating.append(place_rating)
+                    place_image_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={place_info['image_url']}&key={API_KEY}"
+                    p_img.append(place_image_url)
+                    place_website = place_info['website']
+                    p_ext_url.append(place_website)
+                    print(f"{idx}. Name: {place_name}")
+                    print(f"   Rating: {place_rating}")
+                    print(f"   Image URL: {place_image_url}")
+                    print(f"   Website: {place_website}")
+                for img_url,name,ext_url,rating in zip(p_img,p_name,p_ext_url,p_rating):
+                    details.append({"img_url":img_url, "name":name, "ext_url":ext_url, "rating":rating})
+                speech_thread = threading.Thread(target=perform_text_to_speech, args=(response_text,))
+                email_without_dot=session["email_without_dot"]
+                user_chats=client[email_without_dot]
+                collection_name=session["collection_name"]
+                session["collection_name"]=collection_name
+                collection_chats=user_chats[collection_name]
+                chats={"query_text":query_text,"response_text":response_text,"details":details}
+                result_chats=collection_chats.insert_one(chats)
+                chats_all=collection_chats.find()
+                mychats=[chat for chat in chats_all]
+                print(mychats)
+                speech_thread.start()
+                return render_template("response.html",mychats=mychats)
             else:
-                print("No beaches found nearby.")
-        else:
-          print(beaches)
+                print("No places found nearby.")
     if "flight" in keywords:
         try:
             url = "https://tripadvisor16.p.rapidapi.com/api/v1/flights/searchFlights"
@@ -1024,7 +1096,8 @@ def mic2_response():
                     title=str(title)
                     title=title[3:]
                     hotel_name.append(title)
-                    external_url = sorted_hotels[i].get("commerceInfo", {}).get("externalUrl","")
+                    external_url_1 = sorted_hotels[i].get("commerceInfo", {})
+                    external_url = external_url_1["externalUrl"]
                     img_url0 = sorted_hotels[i]["cardPhotos"][0]["sizes"]["urlTemplate"]
                     img_spl = img_url0.split('?')
                     img_url = img_spl[0]
