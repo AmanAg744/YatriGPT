@@ -38,21 +38,6 @@ Yatri GPT is a travel information system that utilizes speech recognition and na
 git clone https://github.com/your_username/Yatri-GPT.git
 cd Yatri-GPT
 
-## Install Dependencies:
-
-```bash
-pip install -r requirements.txt
-
-# Set up Environment Variables:
-
-- Replace 'your_trip_advisor_api_key_here' with your actual TripAdvisor API key.
-- Define latitude_n and longitude_n.
-
-# Run the Application:
-
-```bash
-python app.py
-
 
 
 
