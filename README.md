@@ -34,9 +34,66 @@ Yatri GPT is a travel information system that utilizes speech recognition and na
 
 ## Clone the Repository:
 
+Copy and paste the following commands to clone the Yatri-GPT repository from GitHub:
+
 ```bash
 git clone https://github.com/your_username/Yatri-GPT.git
 cd Yatri-GPT
+```
+## Install Dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+## Set up Environment Variables:
+
+Before running the application, ensure that you set up the necessary environment variables:
+
+- Replace 'your_trip_advisor_api_key_here' with your actual TripAdvisor API key.
+- Define values for latitude_n and longitude_n.
+
+# Run the Application:
+
+To run the application, execute the following command:
+
+```bash
+python app.py
+```
+
+## Access the Application:
+
+Open your web browser and navigate to [http://localhost:5000](http://localhost:5000).
+
+# Folder Structure
+
+- **templates:** Contains HTML templates for the Flask application.
+- **utils.py:** Includes utility functions for data extraction and API calls.
+
+# Usage
+
+1. Open the application in a web browser.
+2. Click on the microphone icon to start speech input.
+3. Speak your query, and the application will process and provide relevant information.
+
+# Dependencies
+
+- Flask
+- SpeechRecognition
+- playsound
+- pyttsx3
+- requests
+
+# License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+
+
+
+
+
+
 
 
 
