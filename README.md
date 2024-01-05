@@ -12,6 +12,7 @@ Yatri GPT is a travel information system that utilizes speech recognition and na
 - [Folder Structure](#folder-structure)
 - [Usage](#usage)
 - [Dependencies](#dependencies)
+- [Contributors](#Contributors)
 - [License](#license)
 
 ## Features
