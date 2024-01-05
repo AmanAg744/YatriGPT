@@ -86,9 +86,9 @@ Open your web browser and navigate to [http://localhost:5000](http://localhost:5
 
 # Contributors
 
-- Aman Agarwal - (https://github.com/AmanAg744)
-- Anirudh Agrawal - (https://github.com/AnirudhA124)
-- Yash Bharadwaj - (https://github.com/meanmachine889)
+- Aman Agarwal - https://github.com/AmanAg744
+- Anirudh Agrawal - https://github.com/AnirudhA124
+- Yash Bharadwaj - https://github.com/meanmachine889
 
 # License
 
