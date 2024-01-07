@@ -208,6 +208,10 @@
         height: 50%;
         width: 40%;
     }
+    .fixed-bottom {
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            /* Other styles for the fixed-bottom section */
+    }
     
 </style>
 <body>
@@ -241,7 +245,11 @@
                                             <img class="star" src="./static/star.png" alt="">
                                         </div>
                                     </p>
-                                    <button onclick="openInNewTab('{{ key.ext_url }}')">Visit</button>
+                                    {% if key.ext_url%}
+                                        <button onclick="openInNewTab('{{ key.ext_url }}')">Visit</button>
+                                    {% else %}
+                                        <button onclick="showAlert()">Visit</button>
+                                    {% endif %}
                                 </div>
                             </li>
                         {% endfor %}
@@ -263,12 +271,42 @@
     </div>
 </body>
 <script>
+    let isHovering = false;
+    const fixedBottom = document.querySelector('.fixed-bottom');
+
     function openInNewTab(url) {
         var newWindow = window.open(url, '_blank');
         newWindow.focus();
     }
-    function redirectToATT(){
-        window.location.href='/mic2_response'
+
+    function redirectToATT() {
+        window.location.href = '/mic2_response';
     }
+
+    function showAlert() {
+        alert('URL does not exist.');
+    }
+
+    function handleScroll() {
+        const windowHeight = window.innerHeight;
+        const bottomOffset = windowHeight - fixedBottom.offsetHeight;
+
+        if (isHovering || (window.scrollY + windowHeight >= document.body.scrollHeight)) {
+            fixedBottom.style.transform = 'translateY(0)';
+            fixedBottom.style.opacity = '1';
+        } else {
+            fixedBottom.style.transform = `translateY(${bottomOffset}px)`;
+            fixedBottom.style.opacity = '0';
+        }
+    }
+
+    window.addEventListener('scroll', () => {
+        handleScroll();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        isHovering = (window.innerHeight - e.clientY) <= 10; // Adjust the value to change sensitivity
+        handleScroll();
+    });
 </script>
 </html>
