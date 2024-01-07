@@ -24,7 +24,7 @@ latitude_n = 13.3409
 longitude_n = 74.7421
 
 header_trip_adviser=headers = {
-	"X-RapidAPI-Key": "bf9f13c08fmshe1af2a81d27fc87p193dedjsn52c12022a3a3",
+	"X-RapidAPI-Key": "7d3bdf0747msh00df6a4ee75996bp144905jsn0806ddc2b631",
 	"X-RapidAPI-Host": "tripadvisor16.p.rapidapi.com"
 }
 
