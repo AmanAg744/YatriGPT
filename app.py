@@ -18,13 +18,21 @@ import time
 from geopy.exc import GeocoderInsufficientPrivileges
 import pyttsx3
 import threading
+import google.generativeai as genai
+from llama_response import llama_response
+import pathlib
+import google.ai.generativelanguage as glm
+from PIL import Image
 
+
+genai.configure(api_key="AIzaSyA5Osb5AV8cPleImeq-0hlSC5k5KNv1wCs")
+model = genai.GenerativeModel('gemini-pro-vision')
 API_KEY = 'AIzaSyBnZeMv7ivrYEy4kMR7ewMoWcuabfr06Hs'
 latitude_n = 13.3409
 longitude_n = 74.7421
 
 header_trip_adviser=headers = {
-	"X-RapidAPI-Key": "7d3bdf0747msh00df6a4ee75996bp144905jsn0806ddc2b631",
+	"X-RapidAPI-Key": "91dd5a043amsh3881eaded5bef78p16eedajsnb69201ec5d43",
 	"X-RapidAPI-Host": "tripadvisor16.p.rapidapi.com"
 }
 
@@ -49,6 +57,9 @@ uri = "mongodb+srv://AnirudhAgrawal1244:Anirudh%40124@anirudhscluster.ccvhnqb.mo
 client = MongoClient(uri, server_api=ServerApi('1'))
 client_user=MongoClient(uri, server_api=ServerApi('1'))                         
 app = Flask(__name__)
+UPLOAD_FOLDER = 'static'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 
 @app.route('/')
 def index():
@@ -90,6 +101,8 @@ def signup_get():
 def login():
     if request.method == "POST":
         email=request.form["email"]
+        email=str(email)
+        email_without_dot=email.replace(".","")
         password=request.form["password"]
         db=client["YatriGPT"]
         collection=db["UserInfo"]
@@ -100,8 +113,11 @@ def login():
         elif cred_found:
             print(cred_found["name"])
             user_name=cred_found["name"]
-            email_without_dot=session["email_without_dot"]
-            user_chats=client[email_without_dot]
+            user_chats=client[email_without_dot] 
+            collection_chat=user_chats["dummy_collection"]
+            collection_chat.insert_one({})
+            collection_chat.delete_many({})
+            session["email_without_dot"]=email_without_dot
             return render_template("main.html")
         else:
             return render_template("index_message.html",message="Email or Password is not correct")
@@ -142,9 +158,6 @@ def button_clicked():
     email = cred_list[1]
     password = cred_list[2]
     confirmPassword = cred_list[3]
-    email=str(email)
-    email_without_dot=email.replace(".","")
-    session["email_without_dot"]=email_without_dot
     db = client["YatriGPT"]
     collection = db["UserInfo"]
     credential = {
@@ -155,12 +168,7 @@ def button_clicked():
     }
     result = collection.insert_one(credential)
     if result.inserted_id:
-        print(email_without_dot)
         print(f"Data inserted successfully. Inserted ID: {result.inserted_id}")
-        user_chats=client[email_without_dot] 
-        collection_chat=user_chats["dummy_collection"]
-        collection_chat.insert_one({})
-        collection_chat.delete_many({})
         return redirect(url_for("index"))
     else:
         return "Failed to insert data"
@@ -577,7 +585,8 @@ def printText():
     session_id = str(uuid.uuid4())
     query_text=speech_to_text()
     response_text = detect_intent_text(project_id, session_id, query_text, language_code)
-    print(response_text)
+    # response_text=model.generate_content(f"You are a voice enabled travel assistant named YatriGPT you will have to suggest the user a travel iternary along with near by place to have meals.if a question is asked to book a hotel,train,flight,restaurant etc dont list the hotels flights ect,ask the user checkin date check out date date of travel and such details accordingly and after getting it say Top hotels in indore or the respective city are as follows and same for flight and trains. Question is: {query_text}")
+    # response_text=response_text.text
     keywords=[]
     keywords = extract_keywords(query_text)
     print("Keywords:", keywords)
@@ -616,7 +625,216 @@ def printText():
         print(f"City: {city}")
     else:
         print("Information not found.")
-    if "nearby" in query_text:
+    if "book" in keywords:
+        if "flight" in keywords:
+            try:
+                url = "https://tripadvisor16.p.rapidapi.com/api/v1/flights/searchFlights"
+                querystring = {
+                        "sourceAirportCode": from_place_code,
+                        "destinationAirportCode": to_place_code,
+                        "date": date,
+                        "itineraryType": "ONE_WAY",
+                        "sortOrder": "ML_BEST_VALUE",
+                        "numAdults": "1",
+                        "numSeniors": "0",
+                        "classOfService": "ECONOMY",
+                        "pageNumber": "1",
+                        "currencyCode": "INR"
+                    }
+
+                headers = header_trip_adviser
+                response = requests.get(url, headers=headers, params=querystring)
+                logo_list=[]
+                flight_name=[]
+                flight_web_url=[]
+                flight_price_list=[]
+                details=[]
+                if response.status_code == 200:
+                    data = response.json()
+                    if data["status"]:
+                        flights = data["data"]["flights"]
+                        for i in range(5):
+                            display_name = flights[i]["segments"][0]["legs"][0]["marketingCarrier"]["displayName"]
+                            flight_name.append(display_name)
+                            image_url = flights[i]["segments"][0]["legs"][0]["marketingCarrier"]["logoUrl"]
+                            logo_list.append(image_url)
+                            flight_url = flights[i]["purchaseLinks"][0]["url"]
+                            flight_price = flights[i]["purchaseLinks"][0]["totalPrice"]
+                            flight_price_list.append(flight_price)
+                            flight_web_url.append(flight_url)
+                            print(f"Airline: {display_name}")
+                            print(f"Flight URL: {flight_url}")
+                            print(f"Logo URL: {image_url}")
+                            print(f"Price: {flight_price}")
+                            print("-----------")
+                        for logo_url,name,ext_url,price in zip(logo_list,flight_name,flight_web_url,flight_price_list):
+                            details.append({"img_url":logo_url, "name":name, "ext_url":ext_url, "rating":price})
+                        speech_thread = threading.Thread(target=perform_text_to_speech, args=(response_text,))
+                        email_without_dot=session["email_without_dot"]
+                        user_chats=client[email_without_dot]
+                        collection_name=query_text
+                        session["collection_name"]=collection_name
+                        collection_chats=user_chats[collection_name]
+                        chats={"query_text":query_text,"response_text":response_text,"details":details,"type":"flight"}
+                        result_chats=collection_chats.insert_one(chats)
+                        chats_all=collection_chats.find()
+                        mychats=[chat for chat in chats_all]
+                        print(mychats)
+                        speech_thread.start()
+                        return render_template("response.html",mychats=mychats)
+                    else:
+                        print("Error in API response:", data["message"])
+                else:
+                    print("Error in API request. Status Code:", response.status_code)
+            except Exception as e:
+                print("Error:",e)
+        if "restaurants" or "restaurant" in keywords:
+            try:
+                url = "https://tripadvisor16.p.rapidapi.com/api/v1/restaurant/searchRestaurants"
+
+                querystring = {"locationId": get_location_id(city)}
+
+                headers = header_trip_adviser
+
+                response = requests.get(url, headers=headers, params=querystring)
+
+                if response.status_code == 200:
+                    data_list = response.json().get("data", [])
+
+                    # Sort restaurants based on rating (highest to lowest)
+                    sorted_restaurants = sorted(data_list["data"], key=lambda x: x["averageRating"], reverse=True)
+
+                    # Loop through each restaurant entry in the sorted list
+                    names=[]
+                    img_list=[]
+                    restaurants_rating=[]
+                    restaurant_urls=[]
+                    details=[]
+                    for i in range(5):
+                        # Extract and print the details
+                        name = sorted_restaurants[i]["name"]
+                        names.append(name)
+                        img_url = sorted_restaurants[i]["thumbnail"]["photo"]["photoSizes"][0]["url"]
+                        reviewpg_url = sorted_restaurants[i]["reviewSnippets"]["reviewSnippetsList"][0]["reviewUrl"]
+                        restaurant_urls.append(reviewpg_url)
+                        rating = sorted_restaurants[i]["averageRating"]
+                        restaurants_rating.append(rating)
+                        print("Rating:", rating)
+                        print("Name:", name)
+                        print("Img URL:", img_url)
+                        img_list.append(img_url)
+                        print("Page URL:", reviewpg_url)
+                        print("-" * 50)
+                    for img_url,name,stars,ext_url in zip(img_list,names,restaurants_rating,restaurant_urls):
+                        details.append({"img_url":img_url, "name":name, "rating":stars, "ext_url":ext_url})
+                    print(details)
+                    email_without_dot=session["email_without_dot"]
+                    user_chats=client[email_without_dot]
+                    collection_name=query_text
+                    session["collection_name"]=collection_name
+                    collection_chats=user_chats[collection_name]
+                    chats={"query_text":query_text,"response_text":response_text,"details":details,"type":"restaurants"}
+                    result_chats=collection_chats.insert_one(chats)
+                    chats_all=collection_chats.find()
+                    mychats=[chat for chat in chats_all]
+                    print(mychats)
+                    speech_thread = threading.Thread(target=perform_text_to_speech, args=(response_text,))
+                    speech_thread.start()
+                    return render_template("response.html",mychats=mychats)
+                else:
+                    print("Error:", response.status_code)
+                    print(response.text)
+            except Exception as e:
+                print("Error:",e)
+        if "hotel" in keywords:
+            # try:
+                url = "https://tripadvisor16.p.rapidapi.com/api/v1/hotels/searchHotelsByLocation"
+                latitude = loc_late
+                longitude = loc_longi
+                check_in = start_date
+                check_out = end_date
+
+                querystring = {
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "checkIn": check_in,
+                    "checkOut": check_out,
+                    "pageNumber": "1",
+                    "currencyCode": "INR"
+                }
+
+                headers = header_trip_adviser
+
+                response = requests.get(url, headers=headers, params=querystring)
+
+                # Check if the request was successful (status code 200)
+                if response.status_code == 200:
+                    data_list = response.json().get("data", [])
+                    # Sort hotels based on rating (highest to lowest)
+                    sorted_hotels = sorted(data_list["data"], key=lambda x: x["bubbleRating"]["rating"], reverse=True)
+
+                    # Loop through each hotel entry in the sorted list
+                    hotel_name=[]
+                    hotel_ext_url=[]
+                    hotel_rating=[]
+                    hotel_image=[]
+                    details=[]
+                    for i in range(5):
+                        # Extract and print the details
+                        title = sorted_hotels[i]["title"]
+                        title=str(title)
+                        title=title[3:]
+                        hotel_name.append(title)
+                        external_url = None
+                        try:
+                            external_url_1 = sorted_hotels[i]["commerceInfo"]
+                            external_url = external_url_1["externalUrl"]
+                        except:
+                            if external_url is None:
+                                external_url_1 = sorted_hotels[i].get("commerceInfo", {})
+                                external_url = external_url_1.get("externalUrl","")
+
+                            elif external_url is None:
+                                external_url_1 = sorted_hotels[i].get("commerceInfo", {})
+                                external_url = external_url_1["externalUrl"]
+
+                            elif external_url is None:
+                                external_url_1 = sorted_hotels[i]["commerceInfo"]
+                                external_url = external_url_1.get("externalUrl","")
+                        img_url0 = sorted_hotels[i]["cardPhotos"][0]["sizes"]["urlTemplate"]
+                        img_spl = img_url0.split('?')
+                        img_url = img_spl[0]
+                        hotel_image.append(img_url)
+                        hotel_ext_url.append(external_url)
+                        rating = sorted_hotels[i]["bubbleRating"]["rating"]
+                        hotel_rating.append(rating)
+                        print("Title:", title)
+                        print("Rating:", rating)
+                        print("External URL:", external_url)
+
+                        print("-" * 50)
+                    for name,ext_url,rating,img_url in zip(hotel_name,hotel_ext_url,hotel_rating,hotel_image):
+                        details.append({"name":name, "rating":rating, "ext_url":ext_url,"img_url":img_url})
+                    email_without_dot=session["email_without_dot"]
+                    user_chats=client[email_without_dot]
+                    collection_name=query_text
+                    session["collection_name"]=collection_name
+                    collection_chats=user_chats[collection_name]
+                    chats={"query_text":query_text,"response_text":response_text,"details":details,"type":"hotel"}
+                    result_chats=collection_chats.insert_one(chats)
+                    chats_all=collection_chats.find()
+                    mychats=[chat for chat in chats_all]
+                    print(mychats)
+                    speech_thread = threading.Thread(target=perform_text_to_speech, args=(response_text,))
+                    speech_thread.start()
+                    return render_template("response.html",mychats=mychats)
+
+                else:
+                    print("Error:", response.status_code)
+                    print(response.text)
+            # except  Exception as e:
+            #     print("Error:",e)
+    elif "nearby" in query_text:
         places_info = find_nearby_places_info(API_KEY, latitude_n, longitude_n, keywords)  # Pass 'keywords' to the function
         if isinstance(places_info, list):
             if places_info:
@@ -635,7 +853,10 @@ def printText():
                     place_image_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={place_info['image_url']}&key={API_KEY}"
                     p_img.append(place_image_url)
                     place_website = place_info['website']
-                    p_ext_url.append(place_website)
+                    if place_website=='N/A':
+                        p_ext_url.append(None)
+                    else:
+                        p_ext_url.append(place_website)
                     print(f"{idx}. Name: {place_name}")
                     print(f"   Rating: {place_rating}")
                     print(f"   Image URL: {place_image_url}")
@@ -648,7 +869,7 @@ def printText():
                 collection_name=query_text
                 session["collection_name"]=collection_name
                 collection_chats=user_chats[collection_name]
-                chats={"query_text":query_text,"response_text":response_text,"details":details}
+                chats={"query_text":query_text,"response_text":response_text,"details":details,"type":"nearby"}
                 result_chats=collection_chats.insert_one(chats)
                 chats_all=collection_chats.find()
                 mychats=[chat for chat in chats_all]
@@ -657,201 +878,22 @@ def printText():
                 return render_template("response.html",mychats=mychats)
             else:
                 print("No places found nearby.")
-    if "flight" in keywords:
-        try:
-            url = "https://tripadvisor16.p.rapidapi.com/api/v1/flights/searchFlights"
-            querystring = {
-                    "sourceAirportCode": from_place_code,
-                    "destinationAirportCode": to_place_code,
-                    "date": date,
-                    "itineraryType": "ONE_WAY",
-                    "sortOrder": "ML_BEST_VALUE",
-                    "numAdults": "1",
-                    "numSeniors": "0",
-                    "classOfService": "ECONOMY",
-                    "pageNumber": "1",
-                    "currencyCode": "INR"
-                }
-
-            headers = header_trip_adviser
-            response = requests.get(url, headers=headers, params=querystring)
-            logo_list=[]
-            flight_name=[]
-            flight_web_url=[]
-            flight_price_list=[]
-            details=[]
-            if response.status_code == 200:
-                data = response.json()
-                if data["status"]:
-                    flights = data["data"]["flights"]
-                    for i in range(5):
-                        display_name = flights[i]["segments"][0]["legs"][0]["marketingCarrier"]["displayName"]
-                        flight_name.append(display_name)
-                        image_url = flights[i]["segments"][0]["legs"][0]["marketingCarrier"]["logoUrl"]
-                        logo_list.append(image_url)
-                        flight_url = flights[i]["purchaseLinks"][0]["url"]
-                        flight_price = flights[i]["purchaseLinks"][0]["totalPrice"]
-                        flight_price_list.append(flight_price)
-                        flight_web_url.append(flight_url)
-                        print(f"Airline: {display_name}")
-                        print(f"Flight URL: {flight_url}")
-                        print(f"Logo URL: {image_url}")
-                        print(f"Price: {flight_price}")
-                        print("-----------")
-                    for logo_url,name,ext_url,price in zip(logo_list,flight_name,flight_web_url,flight_price_list):
-                        details.append({"img_url":logo_url, "name":name, "ext_url":ext_url, "rating":price})
-                    speech_thread = threading.Thread(target=perform_text_to_speech, args=(response_text,))
-                    email_without_dot=session["email_without_dot"]
-                    user_chats=client[email_without_dot]
-                    collection_name=query_text
-                    session["collection_name"]=collection_name
-                    collection_chats=user_chats[collection_name]
-                    chats={"query_text":query_text,"response_text":response_text,"details":details}
-                    result_chats=collection_chats.insert_one(chats)
-                    chats_all=collection_chats.find()
-                    mychats=[chat for chat in chats_all]
-                    print(mychats)
-                    speech_thread.start()
-                    return render_template("response.html",mychats=mychats)
-                else:
-                    print("Error in API response:", data["message"])
-            else:
-                print("Error in API request. Status Code:", response.status_code)
-        except Exception as e:
-            print("Error:",e)
-    if "restaurants" or "restaurant" in keywords:
-        try:
-            url = "https://tripadvisor16.p.rapidapi.com/api/v1/restaurant/searchRestaurants"
-
-            querystring = {"locationId": get_location_id(city)}
-        
-            headers = header_trip_adviser
-        
-            response = requests.get(url, headers=headers, params=querystring)
-        
-            if response.status_code == 200:
-                data_list = response.json().get("data", [])
-        
-                # Sort restaurants based on rating (highest to lowest)
-                sorted_restaurants = sorted(data_list["data"], key=lambda x: x["averageRating"], reverse=True)
-        
-                # Loop through each restaurant entry in the sorted list
-                names=[]
-                img_list=[]
-                restaurants_rating=[]
-                restaurant_urls=[]
-                details=[]
-                for i in range(5):
-                    # Extract and print the details
-                    name = sorted_restaurants[i]["name"]
-                    names.append(name)
-                    img_url = sorted_restaurants[i]["thumbnail"]["photo"]["photoSizes"][0]["url"]
-                    reviewpg_url = sorted_restaurants[i]["reviewSnippets"]["reviewSnippetsList"][0]["reviewUrl"]
-                    restaurant_urls.append(reviewpg_url)
-                    rating = sorted_restaurants[i]["averageRating"]
-                    restaurants_rating.append(rating)
-                    print("Rating:", rating)
-                    print("Name:", name)
-                    print("Img URL:", img_url)
-                    img_list.append(img_url)
-                    print("Page URL:", reviewpg_url)
-                    print("-" * 50)
-                for img_url,name,stars,ext_url in zip(img_list,names,restaurants_rating,restaurant_urls):
-                    details.append({"img_url":img_url, "name":name, "rating":stars, "ext_url":ext_url})
-                print(details)
-                email_without_dot=session["email_without_dot"]
-                user_chats=client[email_without_dot]
-                collection_name=query_text
-                session["collection_name"]=collection_name
-                collection_chats=user_chats[collection_name]
-                chats={"query_text":query_text,"response_text":response_text,"details":details}
-                result_chats=collection_chats.insert_one(chats)
-                chats_all=collection_chats.find()
-                mychats=[chat for chat in chats_all]
-                print(mychats)
-                speech_thread = threading.Thread(target=perform_text_to_speech, args=(response_text,))
-                speech_thread.start()
-                return render_template("response.html",mychats=mychats)
-            else:
-                print("Error:", response.status_code)
-                print(response.text)
-        except Exception as e:
-            print("Error:",e)
-    if "hotel" in keywords:
-        try:
-            url = "https://tripadvisor16.p.rapidapi.com/api/v1/hotels/searchHotelsByLocation"
-            latitude = loc_late
-            longitude = loc_longi
-            check_in = start_date
-            check_out = end_date
-
-            querystring = {
-                "latitude": latitude,
-                "longitude": longitude,
-                "checkIn": check_in,
-                "checkOut": check_out,
-                "pageNumber": "1",
-                "currencyCode": "USD"
-            }
-
-            headers = header_trip_adviser
-
-            response = requests.get(url, headers=headers, params=querystring)
-
-            # Check if the request was successful (status code 200)
-            if response.status_code == 200:
-                data_list = response.json().get("data", [])
-                # Sort hotels based on rating (highest to lowest)
-                sorted_hotels = sorted(data_list["data"], key=lambda x: x["bubbleRating"]["rating"], reverse=True)
-
-                # Loop through each hotel entry in the sorted list
-                hotel_name=[]
-                hotel_ext_url=[]
-                hotel_rating=[]
-                hotel_image=[]
-                details=[]
-                for i in range(5):
-                    # Extract and print the details
-                    title = sorted_hotels[i]["title"]
-                    title=str(title)
-                    title=title[3:]
-                    hotel_name.append(title)
-                    external_url_1 = sorted_hotels[i].get("commerceInfo", {})
-                    external_url = external_url_1["externalUrl"]
-                    img_url0 = sorted_hotels[i]["cardPhotos"][0]["sizes"]["urlTemplate"]
-                    img_spl = img_url0.split('?')
-                    img_url = img_spl[0]
-                    hotel_image.append(img_url)
-                    hotel_ext_url.append(external_url)
-                    rating = sorted_hotels[i]["bubbleRating"]["rating"]
-                    hotel_rating.append(rating)
-                    print("Title:", title)
-                    print("Rating:", rating)
-                    print("External URL:", external_url)
-
-                    print("-" * 50)
-                for name,ext_url,rating,img_url in zip(hotel_name,hotel_ext_url,hotel_rating,hotel_image):
-                    details.append({"name":name, "rating":rating, "ext_url":ext_url,"img_url":img_url})
-                email_without_dot=session["email_without_dot"]
-                user_chats=client[email_without_dot]
-                collection_name=query_text
-                session["collection_name"]=collection_name
-                collection_chats=user_chats[collection_name]
-                chats={"query_text":query_text,"response_text":response_text,"details":details}
-                result_chats=collection_chats.insert_one(chats)
-                chats_all=collection_chats.find()
-                mychats=[chat for chat in chats_all]
-                print(mychats)
-                speech_thread = threading.Thread(target=perform_text_to_speech, args=(response_text,))
-                speech_thread.start()
-                return render_template("response.html",mychats=mychats)
-
-            else:
-                print("Error:", response.status_code)
-                print(response.text)
-        except  Exception as e:
-            print("Error:",e)
-    return f"Query: {query_text}\nResponse: {response_text}"
+    else:
+        response_text=llama_response(query_text)
+        email_without_dot=session["email_without_dot"]
+        user_chats=client[email_without_dot]
+        collection_name=query_text
+        session["collection_name"]=collection_name
+        collection_chats=user_chats[collection_name]
+        d_l=[]
+        chats={"query_text":query_text,"response_text":response_text,"details":d_l}
+        result_chats=collection_chats.insert_one(chats)
+        chats_all=collection_chats.find()
+        mychats=[chat for chat in chats_all]
+        print(mychats)
+        speech_thread = threading.Thread(target=perform_text_to_speech, args=(response_text,))
+        speech_thread.start()
+        return render_template("response.html",mychats=mychats)
 
 @app.route('/mic2_response')
 def mic2_response():
@@ -859,7 +901,8 @@ def mic2_response():
     session_id = str(uuid.uuid4())
     query_text=speech_to_text()
     response_text = detect_intent_text(project_id, session_id, query_text, language_code)
-    print(response_text)
+    # response_text=model.generate_content(f"You are a voice enabled travel assistant named YatriGPT you will have to suggest the user a travel iternary along with near by place to have meals.if a question is asked to book a hotel,train,flight,restaurant etc dont list the hotels flights ect,ask the user checkin date check out date date of travel and such details accordingly and after getting it say Top hotels in indore or the respective city are as follows and same for flight and trains. Question is: {query_text}")
+    # response_text=response_text.text
     keywords=[]
     keywords = extract_keywords(query_text)
     print("Keywords:", keywords)
@@ -898,7 +941,213 @@ def mic2_response():
         print(f"City: {city}")
     else:
         print("Information not found.")
-    if "nearby" in query_text:
+    if "book" in keywords:
+        if "flight" in keywords:
+            try:
+                url = "https://tripadvisor16.p.rapidapi.com/api/v1/flights/searchFlights"
+                querystring = {
+                        "sourceAirportCode": from_place_code,
+                        "destinationAirportCode": to_place_code,
+                        "date": date,
+                        "itineraryType": "ONE_WAY",
+                        "sortOrder": "ML_BEST_VALUE",
+                        "numAdults": "1",
+                        "numSeniors": "0",
+                        "classOfService": "ECONOMY",
+                        "pageNumber": "1",
+                        "currencyCode": "INR"
+                    }
+
+                headers = header_trip_adviser
+                response = requests.get(url, headers=headers, params=querystring)
+                logo_list=[]
+                flight_name=[]
+                flight_web_url=[]
+                flight_price_list=[]
+                details=[]
+                if response.status_code == 200:
+                    data = response.json()
+                    if data["status"]:
+                        flights = data["data"]["flights"]
+                        for i in range(5):
+                            display_name = flights[i]["segments"][0]["legs"][0]["marketingCarrier"]["displayName"]
+                            flight_name.append(display_name)
+                            image_url = flights[i]["segments"][0]["legs"][0]["marketingCarrier"]["logoUrl"]
+                            logo_list.append(image_url)
+                            flight_url = flights[i]["purchaseLinks"][0]["url"]
+                            flight_price = flights[i]["purchaseLinks"][0]["totalPrice"]
+                            flight_price_list.append(flight_price)
+                            flight_web_url.append(flight_url)
+                            print(f"Airline: {display_name}")
+                            print(f"Flight URL: {flight_url}")
+                            print(f"Logo URL: {image_url}")
+                            print(f"Price: {flight_price}")
+                            print("-----------")
+                        for logo_url,name,ext_url,price in zip(logo_list,flight_name,flight_web_url,flight_price_list):
+                            details.append({"img_url":logo_url, "name":name, "ext_url":ext_url, "rating":price})
+                        speech_thread = threading.Thread(target=perform_text_to_speech, args=(response_text,))
+                        email_without_dot=session["email_without_dot"]
+                        user_chats=client[email_without_dot]
+                        collection_name=session["collection_name"]
+                        collection_chats=user_chats[collection_name]
+                        chats={"query_text":query_text,"response_text":response_text,"details":details,"type":"flight"}
+                        result_chats=collection_chats.insert_one(chats)
+                        chats_all=collection_chats.find()
+                        mychats=[chat for chat in chats_all]
+                        print(mychats)
+                        speech_thread.start()
+                        return render_template("response.html",mychats=mychats)
+                    else:
+                        print("Error in API response:", data["message"])
+                else:
+                    print("Error in API request. Status Code:", response.status_code)
+            except Exception as e:
+                print("Error:",e)
+        if "restaurants" or "restaurant" in keywords:
+            try:
+                url = "https://tripadvisor16.p.rapidapi.com/api/v1/restaurant/searchRestaurants"
+
+                querystring = {"locationId": get_location_id(city)}
+
+                headers = header_trip_adviser
+
+                response = requests.get(url, headers=headers, params=querystring)
+
+                if response.status_code == 200:
+                    data_list = response.json().get("data", [])
+
+                    # Sort restaurants based on rating (highest to lowest)
+                    sorted_restaurants = sorted(data_list["data"], key=lambda x: x["averageRating"], reverse=True)
+
+                    # Loop through each restaurant entry in the sorted list
+                    names=[]
+                    img_list=[]
+                    restaurants_rating=[]
+                    restaurant_urls=[]
+                    details=[]
+                    for i in range(5):
+                        # Extract and print the details
+                        name = sorted_restaurants[i]["name"]
+                        names.append(name)
+                        img_url = sorted_restaurants[i]["thumbnail"]["photo"]["photoSizes"][0]["url"]
+                        reviewpg_url = sorted_restaurants[i]["reviewSnippets"]["reviewSnippetsList"][0]["reviewUrl"]
+                        restaurant_urls.append(reviewpg_url)
+                        rating = sorted_restaurants[i]["averageRating"]
+                        restaurants_rating.append(rating)
+                        print("Rating:", rating)
+                        print("Name:", name)
+                        print("Img URL:", img_url)
+                        img_list.append(img_url)
+                        print("Page URL:", reviewpg_url)
+                        print("-" * 50)
+                    for img_url,name,stars,ext_url in zip(img_list,names,restaurants_rating,restaurant_urls):
+                        details.append({"img_url":img_url, "name":name, "rating":stars, "ext_url":ext_url})
+                    print(details)
+                    email_without_dot=session["email_without_dot"]
+                    user_chats=client[email_without_dot]
+                    collection_name=session["collection_name"]
+                    collection_chats=user_chats[collection_name]
+                    chats={"query_text":query_text,"response_text":response_text,"details":details,"type":"restaurant"}
+                    result_chats=collection_chats.insert_one(chats)
+                    chats_all=collection_chats.find()
+                    mychats=[chat for chat in chats_all]
+                    print(mychats)
+                    speech_thread = threading.Thread(target=perform_text_to_speech, args=(response_text,))
+                    speech_thread.start()
+                    return render_template("response.html",mychats=mychats)
+                else:
+                    print("Error:", response.status_code)
+                    print(response.text)
+            except Exception as e:
+                print("Error:",e)
+        if "hotel" in keywords:
+            try:
+                url = "https://tripadvisor16.p.rapidapi.com/api/v1/hotels/searchHotelsByLocation"
+                latitude = loc_late
+                longitude = loc_longi
+                check_in = start_date
+                check_out = end_date
+
+                querystring = {
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "checkIn": check_in,
+                    "checkOut": check_out,
+                    "pageNumber": "1",
+                    "currencyCode": "INR"
+                }
+
+                headers = header_trip_adviser
+
+                response = requests.get(url, headers=headers, params=querystring)
+
+                # Check if the request was successful (status code 200)
+                if response.status_code == 200:
+                    data_list = response.json().get("data", [])
+                    # Sort hotels based on rating (highest to lowest)
+                    sorted_hotels = sorted(data_list["data"], key=lambda x: x["bubbleRating"]["rating"], reverse=True)
+
+                    # Loop through each hotel entry in the sorted list
+                    hotel_name=[]
+                    hotel_ext_url=[]
+                    hotel_rating=[]
+                    hotel_image=[]
+                    details=[]
+                    for i in range(5):
+                        # Extract and print the details
+                        title = sorted_hotels[i]["title"]
+                        title=str(title)
+                        title=title[3:]
+                        hotel_name.append(title)
+                        external_url = None
+                        try:
+                            external_url_1 = sorted_hotels[i]["commerceInfo"]
+                            external_url = external_url_1["externalUrl"]
+                        except:
+                            if external_url is None:
+                                external_url_1 = sorted_hotels[i].get("commerceInfo", {})
+                                external_url = external_url_1.get("externalUrl","")
+
+                            elif external_url is None:
+                                external_url_1 = sorted_hotels[i].get("commerceInfo", {})
+                                external_url = external_url_1["externalUrl"]
+
+                            elif external_url is None:
+                                external_url_1 = sorted_hotels[i]["commerceInfo"]
+                                external_url = external_url_1.get("externalUrl","")
+                        img_url0 = sorted_hotels[i]["cardPhotos"][0]["sizes"]["urlTemplate"]
+                        img_spl = img_url0.split('?')
+                        img_url = img_spl[0]
+                        hotel_image.append(img_url)
+                        hotel_ext_url.append(external_url)
+                        rating = sorted_hotels[i]["bubbleRating"]["rating"]
+                        hotel_rating.append(rating)
+                        print("Title:", title)
+                        print("Rating:", rating)
+                        print("External URL:", external_url)
+
+                        print("-" * 50)
+                    for name,ext_url,rating,img_url in zip(hotel_name,hotel_ext_url,hotel_rating,hotel_image):
+                        details.append({"name":name, "rating":rating, "ext_url":ext_url,"img_url":img_url})
+                    email_without_dot=session["email_without_dot"]
+                    user_chats=client[email_without_dot]
+                    collection_name=session["collection_name"]
+                    collection_chats=user_chats[collection_name]
+                    chats={"query_text":query_text,"response_text":response_text,"details":details,"type":"hotel"}
+                    result_chats=collection_chats.insert_one(chats)
+                    chats_all=collection_chats.find()
+                    mychats=[chat for chat in chats_all]
+                    print(mychats)
+                    speech_thread = threading.Thread(target=perform_text_to_speech, args=(response_text,))
+                    speech_thread.start()
+                    return render_template("response.html",mychats=mychats)
+
+                else:
+                    print("Error:", response.status_code)
+                    print(response.text)
+            except  Exception as e:
+                print("Error:",e)
+    elif "nearby" in query_text:
         places_info = find_nearby_places_info(API_KEY, latitude_n, longitude_n, keywords)  # Pass 'keywords' to the function
         if isinstance(places_info, list):
             if places_info:
@@ -917,7 +1166,10 @@ def mic2_response():
                     place_image_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={place_info['image_url']}&key={API_KEY}"
                     p_img.append(place_image_url)
                     place_website = place_info['website']
-                    p_ext_url.append(place_website)
+                    if place_website=='N/A':
+                        p_ext_url.append(None)
+                    else:
+                        p_ext_url.append(place_website)
                     print(f"{idx}. Name: {place_name}")
                     print(f"   Rating: {place_rating}")
                     print(f"   Image URL: {place_image_url}")
@@ -930,7 +1182,7 @@ def mic2_response():
                 collection_name=session["collection_name"]
                 session["collection_name"]=collection_name
                 collection_chats=user_chats[collection_name]
-                chats={"query_text":query_text,"response_text":response_text,"details":details}
+                chats={"query_text":query_text,"response_text":response_text,"details":details,"type":"nearby"}
                 result_chats=collection_chats.insert_one(chats)
                 chats_all=collection_chats.find()
                 mychats=[chat for chat in chats_all]
@@ -939,199 +1191,86 @@ def mic2_response():
                 return render_template("response.html",mychats=mychats)
             else:
                 print("No places found nearby.")
-    if "flight" in keywords:
-        try:
-            url = "https://tripadvisor16.p.rapidapi.com/api/v1/flights/searchFlights"
-            querystring = {
-                    "sourceAirportCode": from_place_code,
-                    "destinationAirportCode": to_place_code,
-                    "date": date,
-                    "itineraryType": "ONE_WAY",
-                    "sortOrder": "ML_BEST_VALUE",
-                    "numAdults": "1",
-                    "numSeniors": "0",
-                    "classOfService": "ECONOMY",
-                    "pageNumber": "1",
-                    "currencyCode": "INR"
-                }
+    else:
+        response_text=llama_response(query_text)
+        email_without_dot=session["email_without_dot"]
+        user_chats=client[email_without_dot]
+        collection_name=session["collection_name"]
+        collection_chats=user_chats[collection_name]
+        d_l=[]
+        chats={"query_text":query_text,"response_text":response_text,"details":d_l}
+        result_chats=collection_chats.insert_one(chats)
+        chats_all=collection_chats.find()
+        mychats=[chat for chat in chats_all]
+        print(mychats)
+        speech_thread = threading.Thread(target=perform_text_to_speech, args=(response_text,))
+        speech_thread.start()
+        return render_template("response.html",mychats=mychats)
 
-            headers = header_trip_adviser
-            response = requests.get(url, headers=headers, params=querystring)
-            logo_list=[]
-            flight_name=[]
-            flight_web_url=[]
-            flight_price_list=[]
-            details=[]
-            if response.status_code == 200:
-                data = response.json()
-                if data["status"]:
-                    flights = data["data"]["flights"]
-                    for i in range(5):
-                        display_name = flights[i]["segments"][0]["legs"][0]["marketingCarrier"]["displayName"]
-                        flight_name.append(display_name)
-                        image_url = flights[i]["segments"][0]["legs"][0]["marketingCarrier"]["logoUrl"]
-                        logo_list.append(image_url)
-                        flight_url = flights[i]["purchaseLinks"][0]["url"]
-                        flight_price = flights[i]["purchaseLinks"][0]["totalPrice"]
-                        flight_price_list.append(flight_price)
-                        flight_web_url.append(flight_url)
-                        print(f"Airline: {display_name}")
-                        print(f"Flight URL: {flight_url}")
-                        print(f"Logo URL: {image_url}")
-                        print(f"Price: {flight_price}")
-                        print("-----------")
-                    for logo_url,name,ext_url,price in zip(logo_list,flight_name,flight_web_url,flight_price_list):
-                        details.append({"img_url":logo_url, "name":name, "ext_url":ext_url, "rating":price})
-                    speech_thread = threading.Thread(target=perform_text_to_speech, args=(response_text,))
-                    email_without_dot=session["email_without_dot"]
-                    user_chats=client[email_without_dot]
-                    collection_name=session["collection_name"]
-                    collection_chats=user_chats[collection_name]
-                    chats={"query_text":query_text,"response_text":response_text,"details":details}
-                    result_chats=collection_chats.insert_one(chats)
-                    chats_all=collection_chats.find()
-                    mychats=[chat for chat in chats_all]
-                    print(mychats)
-                    speech_thread.start()
-                    return render_template("response.html",mychats=mychats)
-                else:
-                    print("Error in API response:", data["message"])
-            else:
-                print("Error in API request. Status Code:", response.status_code)
-        except Exception as e:
-            print("Error:",e)
-    if "restaurants" or "restaurant" in keywords:
-        try:
-            url = "https://tripadvisor16.p.rapidapi.com/api/v1/restaurant/searchRestaurants"
+def save_image_with_unique_id(file):
+    # Generate a unique ID
+    unique_id = str(uuid.uuid4())
 
-            querystring = {"locationId": get_location_id(city)}
-        
-            headers = header_trip_adviser
-        
-            response = requests.get(url, headers=headers, params=querystring)
-        
-            if response.status_code == 200:
-                data_list = response.json().get("data", [])
-        
-                # Sort restaurants based on rating (highest to lowest)
-                sorted_restaurants = sorted(data_list["data"], key=lambda x: x["averageRating"], reverse=True)
-        
-                # Loop through each restaurant entry in the sorted list
-                names=[]
-                img_list=[]
-                restaurants_rating=[]
-                restaurant_urls=[]
-                details=[]
-                for i in range(5):
-                    # Extract and print the details
-                    name = sorted_restaurants[i]["name"]
-                    names.append(name)
-                    img_url = sorted_restaurants[i]["thumbnail"]["photo"]["photoSizes"][0]["url"]
-                    reviewpg_url = sorted_restaurants[i]["reviewSnippets"]["reviewSnippetsList"][0]["reviewUrl"]
-                    restaurant_urls.append(reviewpg_url)
-                    rating = sorted_restaurants[i]["averageRating"]
-                    restaurants_rating.append(rating)
-                    print("Rating:", rating)
-                    print("Name:", name)
-                    print("Img URL:", img_url)
-                    img_list.append(img_url)
-                    print("Page URL:", reviewpg_url)
-                    print("-" * 50)
-                for img_url,name,stars,ext_url in zip(img_list,names,restaurants_rating,restaurant_urls):
-                    details.append({"img_url":img_url, "name":name, "rating":stars, "ext_url":ext_url})
-                print(details)
-                email_without_dot=session["email_without_dot"]
-                user_chats=client[email_without_dot]
-                collection_name=session["collection_name"]
-                collection_chats=user_chats[collection_name]
-                chats={"query_text":query_text,"response_text":response_text,"details":details}
-                result_chats=collection_chats.insert_one(chats)
-                chats_all=collection_chats.find()
-                mychats=[chat for chat in chats_all]
-                print(mychats)
-                speech_thread = threading.Thread(target=perform_text_to_speech, args=(response_text,))
-                speech_thread.start()
-                return render_template("response.html",mychats=mychats)
-            else:
-                print("Error:", response.status_code)
-                print(response.text)
-        except Exception as e:
-            print("Error:",e)
-    if "hotel" in keywords:
-        try:
-            url = "https://tripadvisor16.p.rapidapi.com/api/v1/hotels/searchHotelsByLocation"
-            latitude = loc_late
-            longitude = loc_longi
-            check_in = start_date
-            check_out = end_date
+    # Get the file extension from the uploaded file
+    _, file_extension = os.path.splitext(file.filename)
 
-            querystring = {
-                "latitude": latitude,
-                "longitude": longitude,
-                "checkIn": check_in,
-                "checkOut": check_out,
-                "pageNumber": "1",
-                "currencyCode": "USD"
-            }
+    # Create a new file name with the unique ID and original file extension
+    new_file_name = f"{unique_id}{file_extension}"
 
-            headers = header_trip_adviser
+    # Save the image with the new file name in the uploads folder
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], new_file_name)
+    file.save(file_path)
+    file_path_single_slash = file_path.replace('\\\\', '\\')
 
-            response = requests.get(url, headers=headers, params=querystring)
+    print(f"Image saved with unique ID: {unique_id}")
+    print(file_path_single_slash)
+    return file_path_single_slash
 
-            # Check if the request was successful (status code 200)
-            if response.status_code == 200:
-                data_list = response.json().get("data", [])
-                # Sort hotels based on rating (highest to lowest)
-                sorted_hotels = sorted(data_list["data"], key=lambda x: x["bubbleRating"]["rating"], reverse=True)
+@app.route('/upload_image', methods=['GET', 'POST'])
+def upload_image():
+    if request.method == 'POST':
+        image = request.files['photo']
+        text = request.form['text']
+        img_url=[]
+        details=[]
+        # Save the uploaded image
+        new_image_path=save_image_with_unique_id(image)
+        new_image_path = new_image_path.replace('\\\\', '\\')
+        print("New path:",new_image_path)
+        img_url.append(new_image_path)
+        print("Saved")
+        response = model.generate_content(
+            glm.Content(
+                parts = [
+                    glm.Part(text=text),
+                    glm.Part(
+                        inline_data=glm.Blob(
+                            mime_type='image/jpeg',
+                            data=pathlib.Path(new_image_path).read_bytes()
+                        )
+                    ),
+                ],
+            ),
+            stream=False)
+        response_text=response.text
+        print(response_text)
+        for image_url in zip(img_url):
+                    details.append({"img_url":image_url})
+        email_without_dot=session["email_without_dot"]
+        user_chats=client[email_without_dot]
+        collection_name=session["collection_name"]
+        collection_chats=user_chats[collection_name]
+        chats={"query_text":text,"response_text":response_text,"details":details,"type":"image"}
+        result_chats=collection_chats.insert_one(chats)
+        img_id=result_chats.inserted_id
+        chats_all=collection_chats.find()
+        mychats=[chat for chat in chats_all]
+        print(mychats)
+        speech_thread = threading.Thread(target=perform_text_to_speech, args=(response_text,))
+        speech_thread.start()
+        print(text)
+    return render_template("response.html",mychats=mychats)
 
-                # Loop through each hotel entry in the sorted list
-                hotel_name=[]
-                hotel_ext_url=[]
-                hotel_rating=[]
-                hotel_image=[]
-                details=[]
-                for i in range(5):
-                    # Extract and print the details
-                    title = sorted_hotels[i]["title"]
-                    title=str(title)
-                    title=title[3:]
-                    hotel_name.append(title)
-                    external_url_1 = sorted_hotels[i].get("commerceInfo", {})
-                    external_url = external_url_1["externalUrl"]
-                    img_url0 = sorted_hotels[i]["cardPhotos"][0]["sizes"]["urlTemplate"]
-                    img_spl = img_url0.split('?')
-                    img_url = img_spl[0]
-                    hotel_image.append(img_url)
-                    hotel_ext_url.append(external_url)
-                    rating = sorted_hotels[i]["bubbleRating"]["rating"]
-                    hotel_rating.append(rating)
-                    print("Title:", title)
-                    print("Rating:", rating)
-                    print("External URL:", external_url)
-
-                    print("-" * 50)
-                for name,ext_url,rating,img_url in zip(hotel_name,hotel_ext_url,hotel_rating,hotel_image):
-                    details.append({"name":name, "rating":rating, "ext_url":ext_url,"img_url":img_url})
-                email_without_dot=session["email_without_dot"]
-                user_chats=client[email_without_dot]
-                collection_name=session["collection_name"]
-                collection_chats=user_chats[collection_name]
-                chats={"query_text":query_text,"response_text":response_text,"details":details}
-                result_chats=collection_chats.insert_one(chats)
-                chats_all=collection_chats.find()
-                mychats=[chat for chat in chats_all]
-                print(mychats)
-                speech_thread = threading.Thread(target=perform_text_to_speech, args=(response_text,))
-                speech_thread.start()
-                return render_template("response.html",mychats=mychats)
-
-            else:
-                print("Error:", response.status_code)
-                print(response.text)
-        except  Exception as e:
-            print("Error:",e)
-    return f"Query: {query_text}\nResponse: {response_text}"
-    
     
 
 if __name__ == '__main__':
