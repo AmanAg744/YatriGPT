@@ -25,14 +25,14 @@ import google.ai.generativelanguage as glm
 from PIL import Image
 
 
-genai.configure(api_key="AIzaSyA5Osb5AV8cPleImeq-0hlSC5k5KNv1wCs")
+genai.configure(api_key="YOUR_API_KEY")
 model = genai.GenerativeModel('gemini-pro-vision')
-API_KEY = 'AIzaSyBnZeMv7ivrYEy4kMR7ewMoWcuabfr06Hs'
+API_KEY = 'YOUR_GOOGLE_API_KEY'
 latitude_n = 13.3409
 longitude_n = 74.7421
 
 header_trip_adviser=headers = {
-	"X-RapidAPI-Key": "91dd5a043amsh3881eaded5bef78p16eedajsnb69201ec5d43",
+	"X-RapidAPI-Key": "YOUR_API_KEY",
 	"X-RapidAPI-Host": "tripadvisor16.p.rapidapi.com"
 }
 
@@ -44,12 +44,9 @@ import nltk
 nltk.download('averaged_perceptron_tagger')
 
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "E:\YatriGPT-main\yatrigpt-9xam-b5419913193b.json"  # Replace with your service account key path
-project_id = "yatrigpt-9xam"  # Replace with your Dialogflow project ID
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "GOOGLE_APPLICATION_CREDENTIALS_PATH"  # Replace with your service account key path
+project_id = "PROJECT_ID"  # Replace with your Dialogflow project ID
 language_code = "en"  # Replace with your language code if different
-
-# Replace 'command_here' with your actual command
-command = 'ffmpeg -i "E:\YatriGPT-main\input.mp3" "E:\YatriGPT-main\output.wav"'
 
 # Replace the placeholder with your Atlas connection string
 uri = "mongodb+srv://AnirudhAgrawal1244:Anirudh%40124@anirudhscluster.ccvhnqb.mongodb.net/"
