@@ -25,9 +25,9 @@ import google.ai.generativelanguage as glm
 from PIL import Image
 
 
-genai.configure(api_key="AIzaSyA5Osb5AV8cPleImeq-0hlSC5k5KNv1wCs")
+genai.configure(api_key="APIKEY")
 model = genai.GenerativeModel('gemini-pro-vision')
-API_KEY = 'AIzaSyBnZeMv7ivrYEy4kMR7ewMoWcuabfr06Hs'
+API_KEY = 'APIKEY'
 latitude_n = 13.3409
 longitude_n = 74.7421
 
